@@ -1,5 +1,7 @@
 # Notesourcing Software Specification
 
+**Questa webapp è progettata e configurata per essere distribuita come GitHub Page. Tutte le funzionalità sono client-side e la persistenza avviene tramite Firebase.**
+
 Notesourcing is a collaborative platform for collecting, organizing, and sharing notes. It aims to serve a wide range of use cases - spiritual or meditative insights, educational resources, or even inventory tracking — while remaining simple and flexible for individuals and communities.
 
 ## 1. Core Features
