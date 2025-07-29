@@ -4,9 +4,11 @@ import {
   getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from "firebase/auth";
 import { db } from "../firebase";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../App";
 
@@ -71,6 +73,26 @@ export default function Login() {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    setMessage("");
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const gUser = result.user;
+      const userRef = doc(db, "users", gUser.uid);
+      const snap = await getDoc(userRef);
+      if (!snap.exists()) {
+        await setDoc(userRef, {
+          email: gUser.email,
+          createdAt: serverTimestamp(),
+        });
+      }
+      // AuthContext will handle redirect
+    } catch (err) {
+      setMessage(err.message);
+    }
+  };
+
   if (user) {
     // Optionally, show a loading or redirect message
     return null;
@@ -118,6 +140,11 @@ export default function Login() {
           </button>
           <button onClick={handleRegister} type="button" style={{ flex: 1 }}>
             Registrati
+          </button>
+        </div>
+        <div style={{ textAlign: "center", marginBottom: 16 }}>
+          <button type="button" onClick={handleGoogleLogin}>
+            Login con Google
           </button>
         </div>
         {message && (
