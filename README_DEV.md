@@ -37,7 +37,7 @@ La webapp funzionerà interamente lato client e userà Firebase per autenticazio
 - `src/index.css` — Stili globali
 
 ## Prossimi passi
-- Implementare autenticazione Firebase (email/password, OAuth)
+- Autenticazione Firebase implementata (email/password e Google)
 - CRUD note e campi
 - Permessi e condivisione
 - UI mobile-friendly
