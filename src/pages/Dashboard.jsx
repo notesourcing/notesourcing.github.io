@@ -203,12 +203,17 @@ export default function Dashboard() {
     }
   };
 
-  const handleInvitation = async (invitationId, accept) => {
+  const handleInvitation = async (invitationId, communityId, accept) => {
     const invitationRef = doc(db, "invitations", invitationId);
     try {
       if (accept) {
-        // Only update the invitation status. The creator will approve the membership.
-        await updateDoc(invitationRef, { status: "accepted" });
+        // Auto-approve invitations: add user directly to community
+        const communityRef = doc(db, "communities", communityId);
+        await updateDoc(communityRef, {
+          members: arrayUnion(user.uid),
+        });
+        // Update invitation status to completed
+        await updateDoc(invitationRef, { status: "completed" });
       } else {
         await updateDoc(invitationRef, { status: "declined" });
       }

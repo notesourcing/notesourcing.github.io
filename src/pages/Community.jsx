@@ -14,7 +14,9 @@ import {
   orderBy,
   getDocs,
   updateDoc,
+  deleteDoc,
   arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
 
 export default function Community() {
@@ -28,6 +30,7 @@ export default function Community() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
   const [pendingInvitations, setPendingInvitations] = useState([]);
+  const [members, setMembers] = useState([]);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -47,6 +50,26 @@ export default function Community() {
             return;
           }
           setCommunity(communityData);
+
+          // Fetch member details if user is creator
+          if (user.uid === communityData.creatorId && communityData.members) {
+            const memberPromises = communityData.members.map(
+              async (memberId) => {
+                try {
+                  const memberDoc = await getDoc(doc(db, "users", memberId));
+                  if (memberDoc.exists()) {
+                    return { id: memberId, ...memberDoc.data() };
+                  }
+                  return { id: memberId, email: "Unknown user" };
+                } catch (err) {
+                  return { id: memberId, email: "Unknown user" };
+                }
+              }
+            );
+
+            const memberDetails = await Promise.all(memberPromises);
+            setMembers(memberDetails);
+          }
         } else {
           setError("Community non trovata.");
           setLoading(false);
@@ -120,20 +143,19 @@ export default function Community() {
 
     // Fetch pending invitations for this community (if user is creator)
     if (user && id) {
-      const invitationsQuery = query(
-        collection(db, "invitations"),
+      const joinRequestsQuery = query(
+        collection(db, "joinRequests"),
         where("communityId", "==", id),
-        where("fromId", "==", user.uid),
-        where("status", "==", "accepted")
+        where("status", "==", "pending")
       );
-      const unsubInvitations = onSnapshot(invitationsQuery, (snapshot) => {
+      const unsubJoinRequests = onSnapshot(joinRequestsQuery, (snapshot) => {
         setPendingInvitations(
           snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
         );
       });
 
       return () => {
-        unsubInvitations();
+        unsubJoinRequests();
       };
     }
   }, [user, id]);
@@ -209,7 +231,7 @@ export default function Community() {
     }
   };
 
-  const handleApproveInvitation = async (invitationId, userId) => {
+  const handleApproveJoinRequest = async (requestId, userId) => {
     try {
       // Add user to community members
       const communityRef = doc(db, "communities", id);
@@ -217,16 +239,91 @@ export default function Community() {
         members: arrayUnion(userId),
       });
 
-      // Update invitation status to completed
-      const invitationRef = doc(db, "invitations", invitationId);
-      await updateDoc(invitationRef, { status: "completed" });
+      // Update join request status to approved
+      const requestRef = doc(db, "joinRequests", requestId);
+      await updateDoc(requestRef, { status: "approved" });
 
-      setInviteMessage("Membro aggiunto alla community!");
+      setInviteMessage("Richiesta di adesione approvata!");
     } catch (err) {
-      console.error("Error approving invitation:", err);
+      console.error("Error approving join request:", err);
       setError("Errore durante l'approvazione: " + err.message);
     }
   };
+
+  const handleRejectJoinRequest = async (requestId) => {
+    try {
+      await deleteDoc(doc(db, "joinRequests", requestId));
+    } catch (error) {
+      console.error("Errore durante il rifiuto della richiesta:", error);
+    }
+  };
+
+  // Request to join community
+  const handleJoinRequest = async () => {
+    try {
+      // Check if user already has a pending request
+      const existingRequestQuery = query(
+        collection(db, "joinRequests"),
+        where("communityId", "==", id),
+        where("userId", "==", user.uid),
+        where("status", "==", "pending")
+      );
+      const existingRequestSnapshot = await getDocs(existingRequestQuery);
+
+      if (!existingRequestSnapshot.empty) {
+        alert("Hai già una richiesta in sospeso per questa community.");
+        return;
+      }
+
+      await addDoc(collection(db, "joinRequests"), {
+        communityId: id,
+        userId: user.uid,
+        userEmail: user.email,
+        status: "pending",
+        createdAt: new Date(),
+      });
+
+      alert("Richiesta di adesione inviata!");
+    } catch (error) {
+      console.error("Errore durante l'invio della richiesta:", error);
+      alert("Errore durante l'invio della richiesta");
+    }
+  };
+  const handleRemoveMember = async (memberId) => {
+    if (memberId === user.uid) {
+      setError("Non puoi rimuovere te stesso dalla community.");
+      return;
+    }
+
+    if (
+      window.confirm(
+        "Sei sicuro di voler rimuovere questo membro dalla community?"
+      )
+    ) {
+      try {
+        const communityRef = doc(db, "communities", id);
+        await updateDoc(communityRef, {
+          members: arrayRemove(memberId),
+        });
+
+        // Update local members list
+        setMembers(members.filter((member) => member.id !== memberId));
+
+        // Update local community state to reflect the change
+        setCommunity((prev) => ({
+          ...prev,
+          members: prev.members.filter((id) => id !== memberId),
+        }));
+
+        setInviteMessage("Membro rimosso dalla community.");
+      } catch (err) {
+        console.error("Error removing member:", err);
+        setError("Errore durante la rimozione del membro: " + err.message);
+      }
+    }
+  };
+
+  const isMember = community?.members?.includes(user.uid);
 
   if (!user) {
     return <div>Effettua il login per accedere alle community.</div>;
@@ -330,7 +427,39 @@ export default function Community() {
         </div>
       )}
 
-      {/* Pending Approvals Section */}
+      {/* Join Request Section for non-members */}
+      {!isMember && user.uid !== community.creatorId && (
+        <div
+          style={{
+            marginBottom: 24,
+            padding: 16,
+            background: "#f8f9fa",
+            borderRadius: 6,
+            border: "1px solid #dee2e6",
+            textAlign: "center",
+          }}
+        >
+          <p style={{ marginBottom: 16 }}>
+            Non sei membro di questa community. Vuoi richiedere di unirti?
+          </p>
+          <button
+            onClick={handleJoinRequest}
+            style={{
+              padding: "8px 16px",
+              background: "#007bff",
+              color: "white",
+              border: "none",
+              borderRadius: 4,
+              cursor: "pointer",
+              fontSize: "14px",
+            }}
+          >
+            Richiedi di unirti
+          </button>
+        </div>
+      )}
+
+      {/* Join Requests Section */}
       {user.uid === community.creatorId && pendingInvitations.length > 0 && (
         <div
           style={{
@@ -342,11 +471,11 @@ export default function Community() {
           }}
         >
           <strong style={{ display: "block", marginBottom: 12 }}>
-            Richieste di adesione in attesa ({pendingInvitations.length})
+            Richieste di adesione ({pendingInvitations.length})
           </strong>
-          {pendingInvitations.map((invitation) => (
+          {pendingInvitations.map((request) => (
             <div
-              key={invitation.id}
+              key={request.id}
               style={{
                 display: "flex",
                 justifyContent: "space-between",
@@ -358,23 +487,101 @@ export default function Community() {
               }}
             >
               <div>
-                <strong>{invitation.toEmail}</strong> ha accettato l'invito
+                <strong>{request.userEmail}</strong> vuole unirsi alla community
               </div>
-              <button
-                onClick={() =>
-                  handleApproveInvitation(invitation.id, invitation.toId)
-                }
-                style={{
-                  padding: "6px 12px",
-                  background: "#28a745",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 4,
-                  cursor: "pointer",
-                }}
-              >
-                Approva
-              </button>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={() =>
+                    handleApproveJoinRequest(request.id, request.userId)
+                  }
+                  style={{
+                    padding: "6px 12px",
+                    background: "#28a745",
+                    color: "white",
+                    border: "none",
+                    borderRadius: 4,
+                    cursor: "pointer",
+                  }}
+                >
+                  Approva
+                </button>
+                <button
+                  onClick={() => handleRejectJoinRequest(request.id)}
+                  style={{
+                    padding: "6px 12px",
+                    background: "#dc3545",
+                    color: "white",
+                    border: "none",
+                    borderRadius: 4,
+                    cursor: "pointer",
+                  }}
+                >
+                  Rifiuta
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Member Management Section */}
+      {user.uid === community.creatorId && members.length > 0 && (
+        <div
+          style={{
+            marginBottom: 24,
+            padding: 16,
+            background: "#f8f9fa",
+            borderRadius: 6,
+            border: "1px solid #dee2e6",
+          }}
+        >
+          <strong style={{ display: "block", marginBottom: 12 }}>
+            Gestione Membri ({members.length})
+          </strong>
+          {members.map((member) => (
+            <div
+              key={member.id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: 8,
+                background: "white",
+                borderRadius: 4,
+                marginBottom: 8,
+              }}
+            >
+              <div>
+                <strong>{member.email}</strong>
+                {member.id === community.creatorId && (
+                  <span
+                    style={{
+                      marginLeft: 8,
+                      fontSize: 12,
+                      color: "#28a745",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    (Creatore)
+                  </span>
+                )}
+              </div>
+              {member.id !== community.creatorId && (
+                <button
+                  onClick={() => handleRemoveMember(member.id)}
+                  style={{
+                    padding: "4px 8px",
+                    background: "#dc3545",
+                    color: "white",
+                    border: "none",
+                    borderRadius: 4,
+                    cursor: "pointer",
+                    fontSize: 12,
+                  }}
+                >
+                  Rimuovi
+                </button>
+              )}
             </div>
           ))}
         </div>
