@@ -12,6 +12,9 @@ import {
   getDoc,
   Timestamp,
   orderBy,
+  getDocs,
+  updateDoc,
+  arrayUnion,
 } from "firebase/firestore";
 
 export default function Community() {
@@ -22,6 +25,9 @@ export default function Community() {
   const [loading, setLoading] = useState(true);
   const [newNote, setNewNote] = useState("");
   const [error, setError] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteMessage, setInviteMessage] = useState("");
+  const [pendingInvitations, setPendingInvitations] = useState([]);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -111,6 +117,25 @@ export default function Community() {
     };
 
     fetchCommunity();
+
+    // Fetch pending invitations for this community (if user is creator)
+    if (user && id) {
+      const invitationsQuery = query(
+        collection(db, "invitations"),
+        where("communityId", "==", id),
+        where("fromId", "==", user.uid),
+        where("status", "==", "accepted")
+      );
+      const unsubInvitations = onSnapshot(invitationsQuery, (snapshot) => {
+        setPendingInvitations(
+          snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+        );
+      });
+
+      return () => {
+        unsubInvitations();
+      };
+    }
   }, [user, id]);
 
   const handleAddSharedNote = async (e) => {
@@ -132,6 +157,74 @@ export default function Community() {
       setError(
         "Errore durante la creazione della nota condivisa: " + err.message
       );
+    }
+  };
+
+  const handleInviteUser = async (e) => {
+    e.preventDefault();
+    setError("");
+    setInviteMessage("");
+    if (!inviteEmail.trim()) {
+      setError("Inserisci un indirizzo email valido.");
+      return;
+    }
+
+    try {
+      // Check if user exists
+      const userQuery = query(
+        collection(db, "users"),
+        where("email", "==", inviteEmail)
+      );
+      const userSnapshot = await getDocs(userQuery);
+      if (userSnapshot.empty) {
+        setError("Nessun utente trovato con questa email.");
+        return;
+      }
+      const invitedUser = userSnapshot.docs[0].data();
+      const invitedUserId = userSnapshot.docs[0].id;
+
+      // Check if user is already a member
+      if (community.members.includes(invitedUserId)) {
+        setError("Questo utente è già membro della community.");
+        return;
+      }
+
+      // Create invitation
+      await addDoc(collection(db, "invitations"), {
+        communityId: id,
+        communityName: community.name,
+        fromId: user.uid,
+        fromEmail: user.email,
+        toId: invitedUserId,
+        toEmail: inviteEmail,
+        status: "pending",
+        created: Timestamp.now(),
+      });
+
+      setInviteMessage(`Invito inviato a ${inviteEmail}!`);
+      setInviteEmail("");
+    } catch (err) {
+      console.error("Error sending invitation:", err);
+      setError("Errore durante l'invio dell'invito: " + err.message);
+    }
+  };
+
+  const handleApproveInvitation = async (invitationId, userId) => {
+    try {
+      // Add user to community members
+      const communityRef = doc(db, "communities", id);
+      await updateDoc(communityRef, {
+        members: arrayUnion(userId),
+      });
+
+      // Update invitation status to completed
+      const invitationRef = doc(db, "invitations", invitationId);
+      await updateDoc(invitationRef, { status: "completed" });
+
+      setInviteMessage("Membro aggiunto alla community!");
+    } catch (err) {
+      console.error("Error approving invitation:", err);
+      setError("Errore durante l'approvazione: " + err.message);
     }
   };
 
@@ -206,6 +299,86 @@ export default function Community() {
           {community.members ? community.members.length : 0}
         </p>
       </div>
+
+      {/* Invite Section */}
+      {user.uid === community.creatorId && (
+        <div
+          style={{
+            marginBottom: 24,
+            padding: 16,
+            background: "#f0f4f8",
+            borderRadius: 6,
+          }}
+        >
+          <strong style={{ display: "block", marginBottom: 8 }}>
+            Invita un nuovo membro
+          </strong>
+          <form onSubmit={handleInviteUser} style={{ display: "flex", gap: 8 }}>
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="Email del nuovo membro..."
+              style={{ flex: 1, padding: 8 }}
+              required
+            />
+            <button type="submit">Invia Invito</button>
+          </form>
+          {inviteMessage && (
+            <div style={{ color: "green", marginTop: 8 }}>{inviteMessage}</div>
+          )}
+        </div>
+      )}
+
+      {/* Pending Approvals Section */}
+      {user.uid === community.creatorId && pendingInvitations.length > 0 && (
+        <div
+          style={{
+            marginBottom: 24,
+            padding: 16,
+            background: "#fff3cd",
+            borderRadius: 6,
+            border: "1px solid #ffeaa7",
+          }}
+        >
+          <strong style={{ display: "block", marginBottom: 12 }}>
+            Richieste di adesione in attesa ({pendingInvitations.length})
+          </strong>
+          {pendingInvitations.map((invitation) => (
+            <div
+              key={invitation.id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: 8,
+                background: "white",
+                borderRadius: 4,
+                marginBottom: 8,
+              }}
+            >
+              <div>
+                <strong>{invitation.toEmail}</strong> ha accettato l'invito
+              </div>
+              <button
+                onClick={() =>
+                  handleApproveInvitation(invitation.id, invitation.toId)
+                }
+                style={{
+                  padding: "6px 12px",
+                  background: "#28a745",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 4,
+                  cursor: "pointer",
+                }}
+              >
+                Approva
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={{ marginBottom: 24 }}>
         <strong>Note Condivise ({sharedNotes.length})</strong>

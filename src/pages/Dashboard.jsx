@@ -13,6 +13,8 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  updateDoc,
+  arrayUnion,
 } from "firebase/firestore";
 
 export default function Dashboard() {
@@ -26,6 +28,7 @@ export default function Dashboard() {
   const [showCommunityForm, setShowCommunityForm] = useState(false);
   const [newCommunityName, setNewCommunityName] = useState("");
   const [newCommunityDescription, setNewCommunityDescription] = useState("");
+  const [invitations, setInvitations] = useState([]);
 
   useEffect(() => {
     if (!user || !user.uid) return;
@@ -116,9 +119,22 @@ export default function Dashboard() {
       setCommunityStats(stats);
     });
 
+    // Fetch user's invitations
+    const invitationsQuery = query(
+      collection(db, "invitations"),
+      where("toId", "==", user.uid),
+      where("status", "==", "pending")
+    );
+    const unsubInvitations = onSnapshot(invitationsQuery, (snapshot) => {
+      setInvitations(
+        snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+      );
+    });
+
     return () => {
       unsubNotes();
       unsubCommunities();
+      unsubInvitations();
     };
   }, [user]);
 
@@ -187,6 +203,21 @@ export default function Dashboard() {
     }
   };
 
+  const handleInvitation = async (invitationId, accept) => {
+    const invitationRef = doc(db, "invitations", invitationId);
+    try {
+      if (accept) {
+        // Only update the invitation status. The creator will approve the membership.
+        await updateDoc(invitationRef, { status: "accepted" });
+      } else {
+        await updateDoc(invitationRef, { status: "declined" });
+      }
+    } catch (err) {
+      console.error("Error handling invitation:", err);
+      setError("Errore nella gestione dell'invito: " + err.message);
+    }
+  };
+
   if (!user) {
     return <div>Effettua il login per vedere la dashboard.</div>;
   }
@@ -203,6 +234,87 @@ export default function Dashboard() {
       }}
     >
       <h2>Benvenuto, {user.email}</h2>
+
+      {/* Invitations Section */}
+      {invitations.length > 0 && (
+        <div
+          style={{
+            marginBottom: 32,
+            background: "#fffbe6",
+            padding: 16,
+            borderRadius: 8,
+            border: "1px solid #ffe58f",
+          }}
+        >
+          <strong>Inviti in attesa ({invitations.length})</strong>
+          <ul style={{ listStyle: "none", padding: 0, marginTop: 12 }}>
+            {invitations.map((invitation) => (
+              <li
+                key={invitation.id}
+                style={{
+                  marginBottom: 8,
+                  padding: 12,
+                  background: "white",
+                  borderRadius: 6,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <p style={{ margin: 0 }}>
+                    Sei stato invitato a unirti a{" "}
+                    <strong>{invitation.communityName}</strong>
+                  </p>
+                  <p style={{ margin: 0, fontSize: 12, color: "#666" }}>
+                    Da: {invitation.fromEmail}
+                  </p>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() =>
+                      handleInvitation(
+                        invitation.id,
+                        invitation.communityId,
+                        true
+                      )
+                    }
+                    style={{
+                      padding: "6px 12px",
+                      background: "#28a745",
+                      color: "white",
+                      border: "none",
+                      borderRadius: 4,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Accetta
+                  </button>
+                  <button
+                    onClick={() =>
+                      handleInvitation(
+                        invitation.id,
+                        invitation.communityId,
+                        false
+                      )
+                    }
+                    style={{
+                      padding: "6px 12px",
+                      background: "#dc3545",
+                      color: "white",
+                      border: "none",
+                      borderRadius: 4,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Rifiuta
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Communities Section */}
       <div style={{ marginBottom: 32 }}>

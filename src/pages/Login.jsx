@@ -1,10 +1,13 @@
 import React, { useState, useContext, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 import {
+  getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
 } from "firebase/auth";
+import { db } from "../firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../App";
 
 export default function Login() {
@@ -51,20 +54,20 @@ export default function Login() {
       return;
     }
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      setMessage(
-        "Registrazione avvenuta con successo! Ora puoi effettuare il login."
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
       );
-    } catch (error) {
-      if (error.code === "auth/email-already-in-use") {
-        setMessage("Email già registrata.");
-      } else if (error.code === "auth/invalid-email") {
-        setMessage("Email non valida.");
-      } else if (error.code === "auth/weak-password") {
-        setMessage("La password deve contenere almeno 6 caratteri.");
-      } else {
-        setMessage("Errore durante la registrazione: " + error.message);
-      }
+      const user = userCredential.user;
+      // Create a document for the new user in the 'users' collection
+      await setDoc(doc(db, "users", user.uid), {
+        email: user.email,
+        createdAt: serverTimestamp(),
+      });
+      navigate("/dashboard");
+    } catch (err) {
+      setMessage(err.message);
     }
   };
 
