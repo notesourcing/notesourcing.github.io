@@ -13,6 +13,7 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  getDoc,
   updateDoc,
   arrayUnion,
 } from "firebase/firestore";
@@ -20,10 +21,15 @@ import {
 export default function Dashboard() {
   const { user } = useContext(AuthContext);
   const [notes, setNotes] = useState([]);
+  const [sharedNotes, setSharedNotes] = useState([]);
+  const [allUserNotes, setAllUserNotes] = useState([]);
   const [communities, setCommunities] = useState([]);
   const [communityStats, setCommunityStats] = useState({});
   const [loading, setLoading] = useState(true);
-  const [newNote, setNewNote] = useState("");
+  const [newNoteFields, setNewNoteFields] = useState([
+    { name: "Title", value: "" },
+    { name: "URL", value: "" },
+  ]);
   const [error, setError] = useState("");
   const [showCommunityForm, setShowCommunityForm] = useState(false);
   const [newCommunityName, setNewCommunityName] = useState("");
@@ -35,7 +41,7 @@ export default function Dashboard() {
     setLoading(true);
     console.log("Fetching notes for user:", user);
 
-    // Fetch user's notes
+    // Fetch user's personal notes
     const notesQuery = query(
       collection(db, "notes"),
       where("uid", "==", user.uid),
@@ -47,14 +53,59 @@ export default function Dashboard() {
         const loadedNotes = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
+          type: "personal",
         }));
         setNotes(loadedNotes);
-        setLoading(false);
       },
       (err) => {
         console.error("Error fetching notes:", err);
         setError("Errore nel caricamento delle note.");
         setLoading(false);
+      }
+    );
+
+    // Fetch user's shared notes (notes they authored in communities)
+    const sharedNotesQuery = query(
+      collection(db, "sharedNotes"),
+      where("authorId", "==", user.uid),
+      orderBy("created", "desc")
+    );
+    const unsubSharedNotes = onSnapshot(
+      sharedNotesQuery,
+      async (snapshot) => {
+        const loadedSharedNotes = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          type: "shared",
+        }));
+
+        // Fetch community names for shared notes
+        const notesWithCommunities = await Promise.all(
+          loadedSharedNotes.map(async (note) => {
+            if (note.communityId) {
+              try {
+                const communityDoc = await getDoc(
+                  doc(db, "communities", note.communityId)
+                );
+                if (communityDoc.exists()) {
+                  return {
+                    ...note,
+                    communityName: communityDoc.data().name,
+                  };
+                }
+              } catch (err) {
+                console.error("Error fetching community for note:", err);
+              }
+            }
+            return { ...note, communityName: "Comunità Sconosciuta" };
+          })
+        );
+
+        setSharedNotes(notesWithCommunities);
+      },
+      (err) => {
+        console.error("Error fetching shared notes:", err);
+        setError("Errore nel caricamento delle note condivise.");
       }
     );
 
@@ -133,31 +184,70 @@ export default function Dashboard() {
 
     return () => {
       unsubNotes();
+      unsubSharedNotes();
       unsubCommunities();
       unsubInvitations();
     };
   }, [user]);
 
+  // Separate useEffect for combining notes
+  useEffect(() => {
+    const combined = [...notes, ...sharedNotes];
+    combined.sort((a, b) => {
+      const dateA = a.created?.toDate ? a.created.toDate() : new Date(0);
+      const dateB = b.created?.toDate ? b.created.toDate() : new Date(0);
+      return dateB - dateA;
+    });
+    setAllUserNotes(combined);
+    if (notes.length > 0 || sharedNotes.length > 0) {
+      setLoading(false);
+    }
+  }, [notes, sharedNotes]);
+
   const handleAddNote = async (e) => {
     e.preventDefault();
     setError("");
-    if (!newNote.trim()) return;
+    // Basic validation: ensure at least one field has a value
+    if (newNoteFields.every((field) => !field.value.trim())) {
+      setError("Inserisci almeno un valore in uno dei campi.");
+      return;
+    }
     try {
       await addDoc(collection(db, "notes"), {
         uid: user.uid,
-        text: newNote,
+        fields: newNoteFields,
         created: Timestamp.now(),
       });
-      setNewNote("");
+      setNewNoteFields([
+        { name: "Title", value: "" },
+        { name: "URL", value: "" },
+      ]);
     } catch (err) {
       console.error("Error handling notes:", err);
       setError("Errore durante la creazione della nota.");
     }
   };
 
-  const handleDeleteNote = async (noteId) => {
+  const handleNoteFieldChange = (index, fieldName, value) => {
+    const updatedFields = [...newNoteFields];
+    updatedFields[index] = { ...updatedFields[index], [fieldName]: value };
+    setNewNoteFields(updatedFields);
+  };
+
+  const addNoteField = () => {
+    setNewNoteFields([...newNoteFields, { name: "", value: "" }]);
+  };
+
+  const removeNoteField = (index) => {
+    const updatedFields = [...newNoteFields];
+    updatedFields.splice(index, 1);
+    setNewNoteFields(updatedFields);
+  };
+
+  const handleDeleteNote = async (noteId, noteType) => {
     try {
-      await deleteDoc(doc(db, "notes", noteId));
+      const collection_name = noteType === "personal" ? "notes" : "sharedNotes";
+      await deleteDoc(doc(db, collection_name, noteId));
     } catch (err) {
       console.error("Error deleting note:", err);
       setError("Errore durante l'eliminazione della nota.");
@@ -239,6 +329,10 @@ export default function Dashboard() {
       }}
     >
       <h2>Benvenuto, {user.email}</h2>
+
+      <div style={{ marginBottom: "2rem" }}>
+        <Link to="/all-notes">Visualizza tutte le note</Link>
+      </div>
 
       {/* Invitations Section */}
       {invitations.length > 0 && (
@@ -601,28 +695,91 @@ export default function Dashboard() {
         <strong>Le tue note ({notes.length})</strong>
         <form
           onSubmit={handleAddNote}
-          style={{ display: "flex", gap: 8, marginTop: 12 }}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            marginTop: 12,
+            background: "#f8f9fa",
+            padding: 16,
+            borderRadius: 6,
+            border: "1px solid #dee2e6",
+          }}
         >
-          <input
-            type="text"
-            value={newNote}
-            onChange={(e) => setNewNote(e.target.value)}
-            placeholder="Scrivi una nuova nota..."
-            style={{ flex: 1, padding: 8 }}
-          />
-          <button type="submit">Aggiungi</button>
+          {newNoteFields.map((field, index) => (
+            <div key={index} style={{ display: "flex", gap: 8 }}>
+              <input
+                type="text"
+                value={field.name}
+                onChange={(e) =>
+                  handleNoteFieldChange(index, "name", e.target.value)
+                }
+                placeholder="Nome campo (es. Titolo)"
+                style={{ flex: 1, padding: 8, border: "1px solid #ccc" }}
+              />
+              <input
+                type="text"
+                value={field.value}
+                onChange={(e) =>
+                  handleNoteFieldChange(index, "value", e.target.value)
+                }
+                placeholder="Valore campo"
+                style={{ flex: 2, padding: 8, border: "1px solid #ccc" }}
+              />
+              <button
+                type="button"
+                onClick={() => removeNoteField(index)}
+                style={{
+                  padding: "4px 8px",
+                  background: "#dc3545",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 4,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              onClick={addNoteField}
+              style={{
+                padding: "6px 12px",
+                background: "#007bff",
+                color: "white",
+                border: "none",
+                borderRadius: 4,
+              }}
+            >
+              Aggiungi Campo
+            </button>
+            <button
+              type="submit"
+              style={{
+                padding: "8px 16px",
+                background: "#28a745",
+                color: "white",
+                border: "none",
+                borderRadius: 4,
+              }}
+            >
+              Salva Nota
+            </button>
+          </div>
         </form>
         {error && <div style={{ color: "red", marginTop: 8 }}>{error}</div>}
       </div>
       {loading ? (
         <div>Caricamento note...</div>
-      ) : notes.length === 0 ? (
+      ) : allUserNotes.length === 0 ? (
         <div>Nessuna nota trovata.</div>
       ) : (
         <ul style={{ padding: 0, listStyle: "none" }}>
-          {notes.map((note) => (
+          {allUserNotes.map((note) => (
             <li
-              key={note.id}
+              key={`${note.type}-${note.id}`}
               style={{
                 background: "#f3f6fa",
                 marginBottom: 8,
@@ -631,6 +788,9 @@ export default function Dashboard() {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "flex-start",
+                borderLeft: `4px solid ${
+                  note.type === "personal" ? "#007bff" : "#28a745"
+                }`,
               }}
             >
               <div style={{ flex: 1 }}>
@@ -643,8 +803,41 @@ export default function Dashboard() {
                   }}
                 >
                   <div style={{ cursor: "pointer" }}>
-                    {note.text}
+                    {note.fields ? (
+                      note.fields.map((field, index) => (
+                        <div key={index}>
+                          <strong>{field.name}:</strong> {field.value}
+                        </div>
+                      ))
+                    ) : (
+                      <div>{note.text}</div> // Fallback for old notes
+                    )}
                     <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          alignItems: "center",
+                        }}
+                      >
+                        <span
+                          style={{
+                            background:
+                              note.type === "personal" ? "#e3f2fd" : "#e8f5e8",
+                            color:
+                              note.type === "personal" ? "#1976d2" : "#388e3c",
+                            padding: "2px 6px",
+                            borderRadius: 3,
+                            fontSize: 10,
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {note.type === "personal" ? "PERSONALE" : "CONDIVISA"}
+                        </span>
+                        {note.type === "shared" && note.communityName && (
+                          <span>in {note.communityName}</span>
+                        )}
+                      </div>
                       {(() => {
                         if (!note.created) return "";
                         // Firestore Timestamp object
@@ -669,7 +862,7 @@ export default function Dashboard() {
                 </Link>
               </div>
               <button
-                onClick={() => handleDeleteNote(note.id)}
+                onClick={() => handleDeleteNote(note.id, note.type)}
                 style={{
                   background: "#dc3545",
                   color: "white",

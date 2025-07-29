@@ -11,8 +11,9 @@ export default function Note() {
   const [note, setNote] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [editText, setEditText] = useState("");
+  const [editFields, setEditFields] = useState([]);
   const [error, setError] = useState("");
+  const availableReactions = ["👍", "❤️", "😂", "😮", "😢", "😠"];
 
   useEffect(() => {
     if (!user || !id) return;
@@ -29,7 +30,9 @@ export default function Note() {
             return;
           }
           setNote(noteData);
-          setEditText(noteData.text);
+          setEditFields(
+            noteData.fields || [{ name: "text", value: noteData.text }]
+          );
         } else {
           setError("Nota non trovata.");
         }
@@ -43,17 +46,68 @@ export default function Note() {
   }, [user, id]);
 
   const handleSave = async () => {
-    if (!editText.trim()) return;
+    if (editFields.every((field) => !field.value.trim())) {
+      setError("Inserisci almeno un valore in uno dei campi.");
+      return;
+    }
     try {
       await updateDoc(doc(db, "notes", id), {
-        text: editText,
+        fields: editFields,
         lastModified: Timestamp.now(),
       });
-      setNote({ ...note, text: editText, lastModified: Timestamp.now() });
+      setNote({ ...note, fields: editFields, lastModified: Timestamp.now() });
       setEditing(false);
     } catch (err) {
       setError("Errore durante il salvataggio.");
     }
+  };
+
+  const handleFieldChange = (index, fieldName, value) => {
+    const updatedFields = [...editFields];
+    updatedFields[index] = { ...updatedFields[index], [fieldName]: value };
+    setEditFields(updatedFields);
+  };
+
+  const handleReaction = async (reaction) => {
+    if (!user) return;
+    const noteRef = doc(db, "notes", id);
+    const currentReactions = note.reactions || {};
+    const reactionUids = currentReactions[reaction] || [];
+    const userUid = user.uid;
+
+    let updatedReactions = { ...currentReactions };
+
+    if (reactionUids.includes(userUid)) {
+      // User is removing their reaction
+      updatedReactions[reaction] = reactionUids.filter(
+        (uid) => uid !== userUid
+      );
+      // If no one is left for this reaction, remove the reaction key
+      if (updatedReactions[reaction].length === 0) {
+        delete updatedReactions[reaction];
+      }
+    } else {
+      // User is adding their reaction
+      updatedReactions[reaction] = [...reactionUids, userUid];
+    }
+
+    try {
+      await updateDoc(noteRef, { reactions: updatedReactions });
+      setNote({ ...note, reactions: updatedReactions });
+    } catch (err) {
+      console.error("Error updating reaction:", err);
+      setError("Errore nell'aggiornare la reazione.");
+    }
+  };
+
+  const addField = () => {
+    setEditFields([...editFields, { name: "", value: "" }]);
+  };
+
+  const removeField = (index) => {
+    const updatedFields = [...editFields];
+    updatedFields.splice(index, 1);
+    setEditFields(updatedFields);
   };
 
   if (!user) {
@@ -159,21 +213,32 @@ export default function Note() {
       </div>
 
       {editing ? (
-        <textarea
-          value={editText}
-          onChange={(e) => setEditText(e.target.value)}
-          style={{
-            width: "100%",
-            minHeight: 200,
-            padding: 12,
-            border: "1px solid #ddd",
-            borderRadius: 4,
-            fontSize: 16,
-            fontFamily: "inherit",
-            resize: "vertical",
-          }}
-          placeholder="Scrivi il contenuto della nota..."
-        />
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {editFields.map((field, index) => (
+            <div key={index} style={{ display: "flex", gap: 8 }}>
+              <input
+                type="text"
+                value={field.name}
+                onChange={(e) =>
+                  handleFieldChange(index, "name", e.target.value)
+                }
+                placeholder="Nome campo"
+                style={{ flex: 1, padding: 8, border: "1px solid #ccc" }}
+              />
+              <input
+                type="text"
+                value={field.value}
+                onChange={(e) =>
+                  handleFieldChange(index, "value", e.target.value)
+                }
+                placeholder="Valore campo"
+                style={{ flex: 2, padding: 8, border: "1px solid #ccc" }}
+              />
+              <button onClick={() => removeField(index)}>✕</button>
+            </div>
+          ))}
+          <button onClick={addField}>Aggiungi Campo</button>
+        </div>
       ) : (
         <div
           style={{
@@ -181,14 +246,57 @@ export default function Note() {
             background: "#f8f9fa",
             borderRadius: 4,
             minHeight: 200,
-            whiteSpace: "pre-wrap",
             fontSize: 16,
             lineHeight: 1.5,
           }}
         >
-          {note.text}
+          {note.fields ? (
+            note.fields.map((field, index) => (
+              <div key={index} style={{ marginBottom: 8 }}>
+                <strong>{field.name}:</strong>{" "}
+                <span style={{ whiteSpace: "pre-wrap" }}>{field.value}</span>
+              </div>
+            ))
+          ) : (
+            <div style={{ whiteSpace: "pre-wrap" }}>{note.text}</div>
+          )}
         </div>
       )}
+
+      <div
+        style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid #eee" }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {availableReactions.map((reaction) => {
+            const uids = (note.reactions && note.reactions[reaction]) || [];
+            const count = uids.length;
+            const userReacted = uids.includes(user.uid);
+            return (
+              <button
+                key={reaction}
+                onClick={() => handleReaction(reaction)}
+                style={{
+                  padding: "4px 8px",
+                  borderRadius: 16,
+                  border: userReacted ? "2px solid #007bff" : "1px solid #ccc",
+                  background: userReacted ? "#e7f3ff" : "white",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                <span>{reaction}</span>
+                {count > 0 && (
+                  <span style={{ fontSize: 12, fontWeight: "bold" }}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <div
         style={{
