@@ -1,7 +1,7 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
-  base: '/notesourcing.github.io/', // necessario per GitHub Pages
+  base: "/", // Correct for a root domain on GitHub Pages
   plugins: [react()],
 });
