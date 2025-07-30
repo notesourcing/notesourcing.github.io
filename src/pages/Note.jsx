@@ -180,7 +180,9 @@ export default function Note() {
               <button
                 onClick={() => {
                   setEditing(false);
-                  setEditText(note.text);
+                  setEditFields(
+                    note.fields || [{ name: "text", value: note.text }]
+                  );
                 }}
                 style={{
                   background: "#6c757d",
