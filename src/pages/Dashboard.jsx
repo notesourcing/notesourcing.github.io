@@ -35,11 +35,25 @@ export default function Dashboard() {
   const [newCommunityName, setNewCommunityName] = useState("");
   const [newCommunityDescription, setNewCommunityDescription] = useState("");
   const [invitations, setInvitations] = useState([]);
+  const [userRole, setUserRole] = useState("");
 
   useEffect(() => {
     if (!user || !user.uid) return;
     setLoading(true);
     console.log("Fetching notes for user:", user);
+
+    // Fetch user role
+    const fetchUserRole = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          setUserRole(userDoc.data().role || "user");
+        }
+      } catch (err) {
+        console.error("Error fetching user role:", err);
+      }
+    };
+    fetchUserRole();
 
     // Fetch user's personal notes
     const notesQuery = query(
@@ -330,8 +344,31 @@ export default function Dashboard() {
     >
       <h2>Benvenuto, {user.email}</h2>
 
-      <div style={{ marginBottom: "2rem" }}>
+      <div
+        style={{
+          marginBottom: "2rem",
+          display: "flex",
+          gap: "1rem",
+          flexWrap: "wrap",
+        }}
+      >
         <Link to="/all-notes">Visualizza tutte le note</Link>
+        {userRole === "superadmin" && (
+          <Link
+            to="/user-roles"
+            style={{
+              color: "#dc3545",
+              fontWeight: "bold",
+              textDecoration: "none",
+              padding: "4px 8px",
+              background: "#ffebee",
+              borderRadius: 4,
+              border: "1px solid #ffcdd2",
+            }}
+          >
+            🔧 Gestisci Ruoli Utenti
+          </Link>
+        )}
       </div>
 
       {/* Invitations Section */}

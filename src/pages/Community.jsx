@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../App";
 import { db } from "../firebase";
 import {
@@ -21,6 +21,7 @@ import {
 
 export default function Community() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [community, setCommunity] = useState(null);
   const [sharedNotes, setSharedNotes] = useState([]);
@@ -179,6 +180,92 @@ export default function Community() {
       setError(
         "Errore durante la creazione della nota condivisa: " + err.message
       );
+    }
+  };
+
+  const handleDeleteSharedNote = async (noteId) => {
+    try {
+      await deleteDoc(doc(db, "sharedNotes", noteId));
+    } catch (err) {
+      console.error("Error deleting shared note:", err);
+      setError("Errore durante l'eliminazione della nota: " + err.message);
+    }
+  };
+
+  const handleDeleteCommunity = async () => {
+    if (
+      !window.confirm(
+        "Sei sicuro di voler eliminare questa community? Questa azione è irreversibile e eliminerà anche tutte le note condivise."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      console.log("Starting community deletion...");
+
+      // First, delete all shared notes in this community
+      console.log("Deleting shared notes...");
+      const sharedNotesQuery = query(
+        collection(db, "sharedNotes"),
+        where("communityId", "==", id)
+      );
+      const sharedNotesSnapshot = await getDocs(sharedNotesQuery);
+      console.log(
+        `Found ${sharedNotesSnapshot.docs.length} shared notes to delete`
+      );
+
+      // Delete all shared notes
+      const deleteNotesPromises = sharedNotesSnapshot.docs.map((noteDoc) =>
+        deleteDoc(doc(db, "sharedNotes", noteDoc.id))
+      );
+      await Promise.all(deleteNotesPromises);
+      console.log("Shared notes deleted successfully");
+
+      // Delete all invitations for this community
+      console.log("Deleting invitations...");
+      const invitationsQuery = query(
+        collection(db, "invitations"),
+        where("communityId", "==", id)
+      );
+      const invitationsSnapshot = await getDocs(invitationsQuery);
+      console.log(
+        `Found ${invitationsSnapshot.docs.length} invitations to delete`
+      );
+
+      const deleteInvitationsPromises = invitationsSnapshot.docs.map(
+        (inviteDoc) => deleteDoc(doc(db, "invitations", inviteDoc.id))
+      );
+      await Promise.all(deleteInvitationsPromises);
+      console.log("Invitations deleted successfully");
+
+      // Delete all join requests for this community
+      console.log("Deleting join requests...");
+      const joinRequestsQuery = query(
+        collection(db, "joinRequests"),
+        where("communityId", "==", id)
+      );
+      const joinRequestsSnapshot = await getDocs(joinRequestsQuery);
+      console.log(
+        `Found ${joinRequestsSnapshot.docs.length} join requests to delete`
+      );
+
+      const deleteJoinRequestsPromises = joinRequestsSnapshot.docs.map(
+        (requestDoc) => deleteDoc(doc(db, "joinRequests", requestDoc.id))
+      );
+      await Promise.all(deleteJoinRequestsPromises);
+      console.log("Join requests deleted successfully");
+
+      // Finally, delete the community itself
+      console.log("Deleting community...");
+      await deleteDoc(doc(db, "communities", id));
+      console.log("Community deleted successfully");
+
+      // Redirect to dashboard
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Error deleting community:", err);
+      setError("Errore durante l'eliminazione della community: " + err.message);
     }
   };
 
@@ -377,7 +464,26 @@ export default function Community() {
           ← Dashboard
         </Link>
         <h2 style={{ margin: 0 }}>{community.name}</h2>
-        <div></div>
+        <div>
+          {community.creatorId === user.uid && (
+            <button
+              onClick={handleDeleteCommunity}
+              style={{
+                background: "#dc3545",
+                color: "white",
+                border: "none",
+                borderRadius: 4,
+                padding: "6px 12px",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: "bold",
+              }}
+              title="Elimina community"
+            >
+              🗑️ Elimina Community
+            </button>
+          )}
+        </div>
       </div>
 
       <div
@@ -620,17 +726,59 @@ export default function Community() {
                 padding: 12,
                 borderRadius: 6,
                 border: "1px solid #e9ecef",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
               }}
             >
-              <div style={{ marginBottom: 8 }}>
-                <strong>{note.authorEmail}</strong>
-                <span style={{ fontSize: 12, color: "#888", marginLeft: 8 }}>
-                  {note.created && note.created.toDate
-                    ? note.created.toDate().toLocaleString()
-                    : ""}
-                </span>
+              <div style={{ flex: 1 }}>
+                <div style={{ marginBottom: 8 }}>
+                  <strong>{note.authorEmail}</strong>
+                  <span style={{ fontSize: 12, color: "#888", marginLeft: 8 }}>
+                    {note.created && note.created.toDate
+                      ? note.created.toDate().toLocaleString()
+                      : ""}
+                  </span>
+                </div>
+                <div>
+                  {note.fields ? (
+                    note.fields.map((field, index) => (
+                      <div key={index} style={{ marginBottom: 4 }}>
+                        <strong>{field.name}:</strong>{" "}
+                        <span style={{ whiteSpace: "pre-wrap" }}>
+                          {field.value}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ whiteSpace: "pre-wrap" }}>{note.text}</div>
+                  )}
+                </div>
               </div>
-              <div style={{ whiteSpace: "pre-wrap" }}>{note.text}</div>
+              {/* Show delete button for note author or community admin */}
+              {(note.authorId === user.uid ||
+                community.creatorId === user.uid) && (
+                <button
+                  onClick={() => handleDeleteSharedNote(note.id)}
+                  style={{
+                    background: "#dc3545",
+                    color: "white",
+                    border: "none",
+                    borderRadius: 4,
+                    padding: "4px 8px",
+                    cursor: "pointer",
+                    fontSize: 12,
+                    marginLeft: 8,
+                  }}
+                  title={
+                    note.authorId === user.uid
+                      ? "Elimina la tua nota"
+                      : "Elimina nota (Admin)"
+                  }
+                >
+                  ✕
+                </button>
+              )}
             </li>
           ))}
         </ul>

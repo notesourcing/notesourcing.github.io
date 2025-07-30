@@ -7,6 +7,7 @@ import {
   doc,
   getDoc,
   updateDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { AuthContext } from "../App";
 
@@ -15,7 +16,25 @@ export default function AllNotes() {
   const [allNotes, setAllNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [userRole, setUserRole] = useState("");
   const availableReactions = ["👍", "❤️", "😂", "😮", "😢", "😠"];
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (!user) return;
+
+      try {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          setUserRole(userDoc.data().role || "user");
+        }
+      } catch (err) {
+        console.error("Error fetching user role:", err);
+      }
+    };
+
+    fetchUserRole();
+  }, [user]);
 
   useEffect(() => {
     const fetchAllNotes = async () => {
@@ -112,6 +131,29 @@ export default function AllNotes() {
     } catch (err) {
       console.error("Error updating reaction:", err);
       setError("Errore nell'aggiornare la reazione.");
+    }
+  };
+
+  const handleDeleteNote = async (noteId, noteType) => {
+    if (userRole !== "superadmin") return;
+
+    if (
+      !window.confirm(
+        "Sei sicuro di voler eliminare questa nota? (Solo Superadmin)"
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const collectionName = noteType === "personal" ? "notes" : "sharedNotes";
+      await deleteDoc(doc(db, collectionName, noteId));
+
+      // Update local state
+      setAllNotes(allNotes.filter((note) => note.id !== noteId));
+    } catch (err) {
+      console.error("Error deleting note:", err);
+      setError("Errore durante l'eliminazione della nota: " + err.message);
     }
   };
 
@@ -247,7 +289,27 @@ export default function AllNotes() {
                   ? note.created.toDate().toLocaleString()
                   : "N/A"}
               </p>
-              <Link to={`/note/${note.id}`}>Visualizza Dettagli</Link>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <Link to={`/note/${note.id}`}>Visualizza Dettagli</Link>
+                {userRole === "superadmin" && (
+                  <button
+                    onClick={() => handleDeleteNote(note.id, note.type)}
+                    style={{
+                      background: "#dc3545",
+                      color: "white",
+                      border: "none",
+                      borderRadius: 4,
+                      padding: "4px 8px",
+                      cursor: "pointer",
+                      fontSize: 11,
+                      fontWeight: "bold",
+                    }}
+                    title="Elimina nota (Solo Superadmin)"
+                  >
+                    🗑️ Delete
+                  </button>
+                )}
+              </div>
             </div>
           </li>
         ))}

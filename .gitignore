@@ -4,3 +4,4 @@ dist/
 firebase-debug.log
 .vscode/
 FIREBASE_RULES.txt
+privateNotes.txt

@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Note from "./pages/Note";
 import Community from "./pages/Community";
 import AllNotes from "./pages/AllNotes";
+import UserRoles from "./pages/UserRoles";
 import { auth } from "./firebase";
 
 export const AuthContext = createContext(null);
@@ -57,6 +58,7 @@ function App() {
           <Route path="/note/:id" element={<Note />} />
           <Route path="/community/:id" element={<Community />} />
           <Route path="/all-notes" element={<AllNotes />} />
+          <Route path="/user-roles" element={<UserRoles />} />
         </Routes>
       </Router>
     </AuthContext.Provider>

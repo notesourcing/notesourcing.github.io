@@ -66,6 +66,7 @@ export default function Login() {
       await setDoc(doc(db, "users", user.uid), {
         email: user.email,
         createdAt: serverTimestamp(),
+        role: "user", // Default role for new users
       });
       navigate("/dashboard");
     } catch (err) {
@@ -85,6 +86,7 @@ export default function Login() {
         await setDoc(userRef, {
           email: gUser.email,
           createdAt: serverTimestamp(),
+          role: "user", // Default role for new users
         });
       }
       // AuthContext will handle redirect
