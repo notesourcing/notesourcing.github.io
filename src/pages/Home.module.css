@@ -142,18 +142,13 @@
 }
 
 .noteItem {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e9ecef;
-  overflow: hidden;
+  /* Remove card styling since NoteCard handles its own styling */
   transition: all 0.3s ease;
-  position: relative;
 }
 
 .noteItem:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  /* Keep subtle hover effect but let NoteCard handle the main hover */
+  transform: translateY(-1px);
 }
 
 .noteLink {

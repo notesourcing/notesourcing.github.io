@@ -107,6 +107,12 @@
   font-size: 0.8rem;
 }
 
+.communityContainer {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f0f0f0;
+}
+
 .communityLink {
   color: #007bff;
   text-decoration: none;
@@ -115,6 +121,7 @@
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   transition: all 0.2s ease;
+  display: inline-block;
 }
 
 .communityLink:hover {

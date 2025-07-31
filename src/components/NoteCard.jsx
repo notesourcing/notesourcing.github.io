@@ -95,20 +95,21 @@ export default function NoteCard({
               </span>
             )}
           </div>
-
-          {note.type === "shared" && note.communityId && note.communityName && (
-            <div className={styles.metadataRow}>
-              <Link
-                to={`/community/${note.communityId}`}
-                className={styles.communityLink}
-                onClick={(e) => e.stopPropagation()}
-              >
-                🏠 {note.communityName}
-              </Link>
-            </div>
-          )}
         </div>
       </Link>
+
+      {/* Community link outside the main note link to avoid nested <a> tags */}
+      {note.type === "shared" && note.communityId && note.communityName && (
+        <div className={styles.communityContainer}>
+          <Link
+            to={`/community/${note.communityId}`}
+            className={styles.communityLink}
+            onClick={(e) => e.stopPropagation()}
+          >
+            🏠 {note.communityName}
+          </Link>
+        </div>
+      )}
 
       {/* Reactions */}
       {showReactions && user && onReaction && (
