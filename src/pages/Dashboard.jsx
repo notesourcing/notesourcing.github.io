@@ -21,8 +21,12 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
 import NewNoteForm from "../components/NewNoteForm";
+import NoteCard from "../components/NoteCard";
 import styles from "./Dashboard.module.css";
 
 export default function Dashboard() {
@@ -34,6 +38,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [addingNote, setAddingNote] = useState(false);
   const [error, setError] = useState("");
+  const availableReactions = ["👍", "❤️", "😂", "😮", "😢", "😠"];
 
   useEffect(() => {
     if (!user || !user.uid) {
@@ -202,6 +207,45 @@ export default function Dashboard() {
     }
   };
 
+  const handleReaction = async (noteId, noteType, reaction) => {
+    if (!user) return;
+
+    const collectionName = noteType === "personal" ? "notes" : "sharedNotes";
+    const noteRef = doc(db, collectionName, noteId);
+
+    const note = allUserNotes.find((n) => n.id === noteId);
+    if (!note) return;
+
+    const currentReactions = note.reactions || {};
+    const reactionUids = currentReactions[reaction] || [];
+    const userUid = user.uid;
+
+    let updatedReactions = { ...currentReactions };
+
+    if (reactionUids.includes(userUid)) {
+      updatedReactions[reaction] = reactionUids.filter(
+        (uid) => uid !== userUid
+      );
+      if (updatedReactions[reaction].length === 0) {
+        delete updatedReactions[reaction];
+      }
+    } else {
+      updatedReactions[reaction] = [...reactionUids, userUid];
+    }
+
+    try {
+      await updateDoc(noteRef, { reactions: updatedReactions });
+      setAllUserNotes(
+        allUserNotes.map((n) =>
+          n.id === noteId ? { ...n, reactions: updatedReactions } : n
+        )
+      );
+    } catch (err) {
+      console.error("Error updating reaction:", err);
+      setError("Errore nell'aggiornare la reazione.");
+    }
+  };
+
   if (loading) {
     return <div>Caricamento...</div>;
   }
@@ -263,78 +307,14 @@ export default function Dashboard() {
           <ul className={styles.notesList}>
             {allUserNotes.map((note) => (
               <li key={note.id} className={styles.noteItem}>
-                <div className={styles.noteCard}>
-                  <button
-                    className={styles.deleteButtonFloating}
-                    title="Elimina nota"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteNote(note.id, note.type);
-                    }}
-                  >
-                    🗑️
-                  </button>
-                  <div
-                    className={styles.noteCardClickable}
-                    onClick={() => (window.location.hash = `#/note/${note.id}`)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter")
-                        window.location.hash = `#/note/${note.id}`;
-                    }}
-                  >
-                    <div className={styles.noteContent}>
-                      {note.fields && note.fields.length > 0 ? (
-                        <>
-                          {note.fields.map((field, idx) => (
-                            <div key={idx} className={styles.noteField}>
-                              <strong>{field.name}:</strong> {field.value}
-                            </div>
-                          ))}
-                        </>
-                      ) : (
-                        <div className={styles.noteText}>
-                          {note.text || "Nota senza titolo"}
-                        </div>
-                      )}
-                    </div>
-                    <div className={styles.noteMeta}>
-                      <span
-                        className={`${styles.noteType} ${
-                          note.type === "personal"
-                            ? styles.personal
-                            : styles.shared
-                        }`}
-                      >
-                        {note.type === "personal" ? "Personale" : "Condivisa"}
-                      </span>
-                      {note.type === "shared" &&
-                        note.communityName &&
-                        note.communityId && (
-                          <span
-                            className={styles.communityName}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              window.location.hash = `#/community/${note.communityId}`;
-                            }}
-                            style={{
-                              cursor: "pointer",
-                              textDecoration: "underline",
-                            }}
-                            title={`Vai alla community: ${note.communityName}`}
-                          >
-                            in {note.communityName}
-                          </span>
-                        )}
-                      <span className={styles.noteDate}>
-                        {note.created?.toDate
-                          ? note.created.toDate().toLocaleDateString()
-                          : "N/A"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                <NoteCard
+                  note={note}
+                  user={user}
+                  isSuperAdmin={isSuperAdmin}
+                  onReaction={handleReaction}
+                  onDelete={handleDeleteNote}
+                  availableReactions={availableReactions}
+                />
               </li>
             ))}
           </ul>

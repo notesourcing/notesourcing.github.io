@@ -24,6 +24,7 @@ import {
   arrayRemove,
 } from "firebase/firestore";
 import NewNoteForm from "../components/NewNoteForm";
+import NoteCard from "../components/NoteCard";
 import styles from "./Community.module.css";
 
 export default function Community() {
@@ -35,6 +36,7 @@ export default function Community() {
   const [loading, setLoading] = useState(true);
   const [addingNote, setAddingNote] = useState(false);
   const [error, setError] = useState("");
+  const availableReactions = ["👍", "❤️", "😂", "😮", "😢", "😠"];
 
   useEffect(() => {
     if (!user || !id) return;
@@ -112,12 +114,49 @@ export default function Community() {
     }
   };
 
-  const handleDeleteSharedNote = async (noteId) => {
+  const handleDeleteSharedNote = async (noteId, selectedCommunityId) => {
     try {
       await deleteDoc(doc(db, "sharedNotes", noteId));
     } catch (err) {
       console.error("Error deleting shared note:", err);
       setError("Errore durante l'eliminazione della nota.");
+    }
+  };
+
+  const handleReaction = async (noteId, noteType, reaction) => {
+    if (!user) return;
+
+    const noteRef = doc(db, "sharedNotes", noteId);
+    const note = sharedNotes.find((n) => n.id === noteId);
+    if (!note) return;
+
+    const currentReactions = note.reactions || {};
+    const reactionUids = currentReactions[reaction] || [];
+    const userUid = user.uid;
+
+    let updatedReactions = { ...currentReactions };
+
+    if (reactionUids.includes(userUid)) {
+      updatedReactions[reaction] = reactionUids.filter(
+        (uid) => uid !== userUid
+      );
+      if (updatedReactions[reaction].length === 0) {
+        delete updatedReactions[reaction];
+      }
+    } else {
+      updatedReactions[reaction] = [...reactionUids, userUid];
+    }
+
+    try {
+      await updateDoc(noteRef, { reactions: updatedReactions });
+      setSharedNotes(
+        sharedNotes.map((n) =>
+          n.id === noteId ? { ...n, reactions: updatedReactions } : n
+        )
+      );
+    } catch (err) {
+      console.error("Error updating reaction:", err);
+      setError("Errore nell'aggiornare la reazione.");
     }
   };
 
@@ -175,34 +214,15 @@ export default function Community() {
 
       <div className={styles.notesGrid}>
         {sharedNotes.map((note) => (
-          <div key={note.id} className={styles.noteCard}>
-            <div className={styles.noteContent}>
-              {note.fields && Array.isArray(note.fields) ? (
-                note.fields.map((field, index) => (
-                  <div key={index}>
-                    <strong>{field.name}:</strong> {field.value}
-                  </div>
-                ))
-              ) : (
-                <p>{note.text}</p>
-              )}
-            </div>
-            <div className={styles.noteFooter}>
-              <span>
-                {note.authorEmail} -{" "}
-                {note.created?.toDate().toLocaleDateString()}
-              </span>
-              {(isAdmin || note.authorId === user.uid) && (
-                <button
-                  onClick={() => handleDeleteSharedNote(note.id)}
-                  className={styles.deleteButton}
-                  title="Elimina nota"
-                >
-                  🗑️
-                </button>
-              )}
-            </div>
-          </div>
+          <NoteCard
+            key={note.id}
+            note={{ ...note, type: "shared" }}
+            user={user}
+            isAdmin={isAdmin}
+            onReaction={handleReaction}
+            onDelete={handleDeleteSharedNote}
+            availableReactions={availableReactions}
+          />
         ))}
       </div>
     </div>

@@ -13,6 +13,7 @@ import {
   query,
 } from "firebase/firestore";
 import { AuthContext } from "../App";
+import NoteCard from "../components/NoteCard";
 
 export default function AllNotes() {
   const { user, isSuperAdmin } = useContext(AuthContext);
@@ -203,132 +204,15 @@ export default function AllNotes() {
 
       <ul style={{ listStyle: "none", padding: 0 }}>
         {allNotes.map((note) => (
-          <li
-            key={note.id}
-            style={{
-              background: "#fff",
-              marginBottom: 16,
-              padding: 16,
-              borderRadius: 8,
-              boxShadow: "0 2px 8px #0001",
-              borderLeft: `5px solid ${
-                note.type === "personal" ? "#007bff" : "#28a745"
-              }`,
-            }}
-          >
-            <div style={{ marginBottom: 8 }}>
-              {note.fields ? (
-                note.fields.map((field, index) => (
-                  <div key={index}>
-                    <strong>{field.name}:</strong> {field.value}
-                  </div>
-                ))
-              ) : (
-                <div>{note.text}</div> // Fallback for old notes
-              )}
-            </div>
-            <div
-              style={{
-                marginTop: 12,
-                paddingTop: 8,
-                borderTop: "1px solid #eee",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  marginBottom: 8,
-                }}
-              >
-                {availableReactions.map((reaction) => {
-                  const uids =
-                    (note.reactions && note.reactions[reaction]) || [];
-                  const count = uids.length;
-                  const userReacted = user && uids.includes(user.uid);
-                  return (
-                    <button
-                      key={reaction}
-                      onClick={() =>
-                        handleReaction(note.id, note.type, reaction)
-                      }
-                      style={{
-                        padding: "4px 8px",
-                        borderRadius: 16,
-                        border: userReacted
-                          ? "2px solid #007bff"
-                          : "1px solid #ccc",
-                        background: userReacted ? "#e7f3ff" : "white",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4,
-                      }}
-                    >
-                      <span>{reaction}</span>
-                      {count > 0 && (
-                        <span style={{ fontSize: 12, fontWeight: "bold" }}>
-                          {count}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div
-              style={{
-                fontSize: 12,
-                color: "#666",
-                marginTop: 12,
-                paddingTop: 8,
-                borderTop: "1px solid #eee",
-              }}
-            >
-              <p style={{ margin: "4px 0" }}>
-                <strong>Autore:</strong> {note.authorEmail || note.uid}
-              </p>
-              {note.type === "shared" && (
-                <p style={{ margin: "4px 0" }}>
-                  <strong>Community:</strong>{" "}
-                  <Link to={`/community/${note.communityId}`}>
-                    {note.communityName}
-                  </Link>
-                </p>
-              )}
-              <p style={{ margin: "4px 0" }}>
-                <strong>Tipo:</strong>{" "}
-                {note.type === "personal" ? "Personale" : "Condivisa"}
-              </p>
-              <p style={{ margin: "4px 0" }}>
-                <strong>Data:</strong>{" "}
-                {note.created?.toDate
-                  ? note.created.toDate().toLocaleString()
-                  : "N/A"}
-              </p>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <Link to={`/note/${note.id}`}>Visualizza Dettagli</Link>
-                {isSuperAdmin && (
-                  <button
-                    onClick={() => handleDeleteNote(note.id, note.type)}
-                    style={{
-                      background: "#dc3545",
-                      color: "white",
-                      border: "none",
-                      borderRadius: 4,
-                      padding: "4px 8px",
-                      cursor: "pointer",
-                      fontSize: 11,
-                      fontWeight: "bold",
-                    }}
-                    title="Elimina nota (Solo Superadmin)"
-                  >
-                    🗑️ Delete
-                  </button>
-                )}
-              </div>
-            </div>
+          <li key={note.id} style={{ marginBottom: "1rem" }}>
+            <NoteCard
+              note={note}
+              user={user}
+              isSuperAdmin={isSuperAdmin}
+              onReaction={handleReaction}
+              onDelete={handleDeleteNote}
+              availableReactions={availableReactions}
+            />
           </li>
         ))}
       </ul>

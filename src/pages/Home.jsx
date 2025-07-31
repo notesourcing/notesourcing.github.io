@@ -3,37 +3,24 @@
  * This file contains real-time listeners essential for live note updates.
  * Before modifying, run: npm run features
  */
-import React, { useEffect, useState, useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { AuthContext } from "../App";
 import { db } from "../firebase";
 import {
   collection,
-  getDocs,
+  query,
+  orderBy,
+  onSnapshot,
   doc,
   getDoc,
   updateDoc,
   deleteDoc,
-  onSnapshot,
-  orderBy,
-  query,
+  arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
-import { AuthContext } from "../App";
+import NoteCard from "../components/NoteCard";
 import styles from "./Home.module.css";
-
-// Utility function to format user display name or email
-const formatUserName = (author) => {
-  if (!author) return "Utente Sconosciuto";
-  // If it's an email, show the full email
-  if (typeof author === "string" && author.includes("@")) {
-    return author;
-  }
-  // If it's an object with displayName or name
-  if (typeof author === "object" && (author.displayName || author.name)) {
-    return author.displayName || author.name;
-  }
-  // Otherwise, fallback to string
-  return typeof author === "string" ? author : "Utente Sconosciuto";
-};
 
 export default function Home() {
   const { user, isSuperAdmin } = useContext(AuthContext);
@@ -321,100 +308,15 @@ export default function Home() {
         <ul className={styles.notesList}>
           {allNotes.map((note) => (
             <li key={note.id} className={styles.noteItem}>
-              <Link to={`/note/${note.id}`} className={styles.noteLink}>
-                <div className={styles.noteContent}>
-                  {note.fields ? (
-                    note.fields.map((field, index) => (
-                      <div key={index} className={styles.field}>
-                        <strong>{field.name}:</strong> {field.value}
-                      </div>
-                    ))
-                  ) : (
-                    <div className={styles.noteText}>{note.text}</div>
-                  )}
-                </div>
-
-                <div className={styles.noteMetadata}>
-                  <div className={styles.metadataRow}>
-                    <span className={styles.author}>
-                      👤 {formatUserName(note.authorEmail || note.uid)}
-                    </span>
-                    <span className={styles.date}>
-                      📅{" "}
-                      {note.created?.toDate
-                        ? note.created.toDate().toLocaleDateString("it-IT", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "N/A"}
-                    </span>
-                  </div>
-                  <div className={styles.metadataRow}>
-                    {note.type === "shared" && (
-                      <span className={styles.community}>
-                        🏠 {note.communityName}
-                      </span>
-                    )}
-                    <span className={styles.noteType}>
-                      {note.type === "personal"
-                        ? "📝 Personale"
-                        : "🌐 Condivisa"}
-                    </span>
-                  </div>
-                </div>
-              </Link>
-
-              <div className={styles.reactions}>
-                {availableReactions.map((reaction) => {
-                  const uids =
-                    (note.reactions && note.reactions[reaction]) || [];
-                  const count = uids.length;
-                  const userReacted = user && uids.includes(user.uid);
-                  return (
-                    <button
-                      key={reaction}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleReaction(note.id, note.type, reaction);
-                      }}
-                      className={`${styles.reactionButton} ${
-                        userReacted ? styles.reacted : ""
-                      }`}
-                      disabled={!user}
-                      title={
-                        !user
-                          ? "Accedi per reagire"
-                          : userReacted
-                          ? "Rimuovi reazione"
-                          : "Aggiungi reazione"
-                      }
-                    >
-                      <span className={styles.emoji}>{reaction}</span>
-                      {count > 0 && (
-                        <span className={styles.count}>{count}</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {isSuperAdmin && (
-                <div className={styles.adminActions}>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleDeleteNote(note.id, note.type);
-                    }}
-                    className={styles.deleteButton}
-                    title="Elimina nota (Solo Superadmin)"
-                  >
-                    🗑️ Elimina
-                  </button>
-                </div>
-              )}
+              <NoteCard
+                note={note}
+                user={user}
+                isSuperAdmin={isSuperAdmin}
+                onReaction={handleReaction}
+                onDelete={handleDeleteNote}
+                availableReactions={availableReactions}
+                showDeleteButton={isSuperAdmin}
+              />
             </li>
           ))}
         </ul>
