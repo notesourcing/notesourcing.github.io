@@ -56,10 +56,13 @@ This document tracks all implemented features to prevent accidental removal duri
 ### ✅ Comments System
 
 - **Add Comments**: Users can comment on any note they have access to
-- **View Comments**: Threaded display of comments on note detail pages
-- **Delete Comments**: Comment authors can delete their own comments
-- **Real-time Updates**: Comments appear instantly via onSnapshot listeners
+- **Threaded Replies**: Users can reply to comments creating nested conversations
+- **View Comments**: Hierarchical display of comments and replies with proper indentation
+- **Delete Comments**: Comment authors can delete their own comments and replies
+- **Real-time Updates**: Comments and replies appear instantly via onSnapshot listeners
 - **User Attribution**: Comments show author name and timestamp
+- **Nested Depth Control**: Limits reply nesting to prevent UI issues (max 3 levels)
+- **Permissions**: Only logged-in users can add comments and replies
 - **Permissions**: Only logged-in users can add comments
 - **Note Detail Page**: Individual note view/edit interface
 - **Community Pages**: Community-specific note feeds
@@ -140,8 +143,8 @@ This document tracks all implemented features to prevent accidental removal duri
 ### ✅ Database Structure
 
 - **Collections**: `notes`, `sharedNotes`, `communities`, `users`, `comments`
-- **Relationships**: Notes linked to users and communities, comments linked to notes
-- **Metadata**: Creation dates, author information, community names, comment timestamps
+- **Relationships**: Notes linked to users and communities, comments linked to notes with optional parent-child relationships
+- **Metadata**: Creation dates, author information, community names, comment timestamps, reply threading
 - **Query Optimization**: Efficient queries with proper indexing
 
 ### ✅ Data Validation
