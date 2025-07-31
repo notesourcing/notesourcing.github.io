@@ -68,7 +68,7 @@ function Layout() {
                 : styles.navLink
             }
           >
-            � Tutte le Note
+            📝 Note
           </Link>
           <Link
             to="/communities"
@@ -78,7 +78,7 @@ function Layout() {
                 : styles.navLink
             }
           >
-            👥 Communities
+            👥 Le Comunità
           </Link>
           {isSuperAdmin && (
             <Link
