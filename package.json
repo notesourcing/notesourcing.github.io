@@ -5,7 +5,19 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "features": "code FEATURES.md",
+    "check-features": "echo 'Remember to check FEATURES.md before making changes!'",
+    "contributing": "code CONTRIBUTING.md",
+    "docs": "code FEATURES.md CONTRIBUTING.md",
+    "validate-features": "node scripts/validate-features.js",
+    "integrity-check": "node scripts/integrity-guard.js",
+    "full-check": "npm run validate-features && npm run integrity-check",
+    "safe-build": "npm run full-check && npm run build",
+    "lock-features": "node scripts/lockdown.js enable",
+    "unlock-features": "node scripts/lockdown.js disable",
+    "check-locks": "node scripts/lockdown.js check",
+    "lockdown-status": "node scripts/lockdown.js status"
   },
   "dependencies": {
     "firebase": "^10.0.0",

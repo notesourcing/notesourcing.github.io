@@ -1,0 +1,9 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🚨 REMINDER: Have you checked FEATURES.md before making changes?"
+echo "📋 Run 'npm run features' to review all implemented features"
+echo "⚠️  This project has complex real-time functionality that must be preserved"
+echo ""
+echo "Press ENTER to continue or Ctrl+C to abort and review documentation first..."
+read -r

@@ -1,11 +1,3 @@
-/**
- * 🚨 CRITICAL COMPONENT - DO NOT REMOVE FEATURES WITHOUT CHECKING FEATURES.md
- * This file contains:
- * - Real-time personal notes functionality
- * - SuperAdmin role management
- * - User note management features
- * Before modifying, run: npm run features
- */
 import React, { useContext, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AuthContext } from "../App";
@@ -41,9 +33,7 @@ export default function Dashboard() {
     }
     setLoading(true);
 
-    // ⚠️ CRITICAL: DO NOT REMOVE - Real-time listeners are essential for live updates
-    // This onSnapshot listener ensures personal notes appear immediately when created
-    // Replacing with getDocs() will break real-time functionality - see FEATURES.md
+    // Fetch user's personal notes
     const notesQuery = query(
       collection(db, "notes"),
       where("uid", "==", user.uid),
@@ -65,7 +55,7 @@ export default function Dashboard() {
       }
     );
 
-    // Fetch user's shared notes in real-time (notes they authored in communities)
+    // Fetch user's shared notes (notes they authored in communities)
     const sharedNotesQuery = query(
       collection(db, "sharedNotes"),
       where("authorId", "==", user.uid),
@@ -80,7 +70,7 @@ export default function Dashboard() {
           type: "shared",
         }));
 
-        // Fetch community names for shared notes in real-time
+        // Fetch community names for shared notes
         const notesWithCommunities = await Promise.all(
           loadedSharedNotes.map(async (note) => {
             if (note.communityId) {
@@ -172,20 +162,11 @@ export default function Dashboard() {
   }
 
   return (
-    <div
-      className={styles.container}
-      data-page="dashboard"
-      data-realtime-active="true"
-    >
+    <div className={styles.container}>
       <h2 className={styles.welcomeMessage}>Benvenuto, {user.email}</h2>
 
-      {/* ⚠️ CRITICAL: DO NOT REMOVE - SuperAdmin functionality
-          This section provides SuperAdmin users access to:
-          - User role management (/user-roles)
-          - All notes view (/all-notes)
-          Removing this breaks admin capabilities - see FEATURES.md */}
       {isSuperAdmin && (
-        <div className={styles.adminLinkContainer} data-superadmin="true">
+        <div className={styles.adminLinkContainer}>
           <Link to="/user-roles" className={styles.adminLink}>
             🔧 Gestisci Ruoli Utenti
           </Link>
@@ -258,6 +239,12 @@ export default function Dashboard() {
         ) : (
           <p>Non hai ancora creato nessuna nota.</p>
         )}
+      </div>
+
+      <div className={styles.section}>
+        <p>
+          <Link to="/communities">Visualizza le tue Community →</Link>
+        </p>
       </div>
     </div>
   );

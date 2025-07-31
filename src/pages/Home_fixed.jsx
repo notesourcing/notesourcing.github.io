@@ -1,8 +1,3 @@
-/**
- * 🚨 CRITICAL COMPONENT - DO NOT REMOVE FEATURES WITHOUT CHECKING FEATURES.md
- * This file contains real-time listeners essential for live note updates.
- * Before modifying, run: npm run features
- */
 import React, { useEffect, useState, useContext } from "react";
 import { Link } from "react-router-dom";
 import { db } from "../firebase";
@@ -221,11 +216,7 @@ export default function Home() {
   }
 
   return (
-    <div
-      className={styles.container}
-      data-page="home"
-      data-realtime-active="true"
-    >
+    <div className={styles.container}>
       <h1 className={styles.title}>Benvenuto in NoteSourcing</h1>
       <div className={styles.subtitle}>
         <p>

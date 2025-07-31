@@ -2,6 +2,8 @@
 
 **Questa webapp è progettata e configurata per essere distribuita come GitHub Page. Tutte le funzionalità sono client-side e la persistenza avviene tramite Firebase.**
 
+> ⚠️ **IMPORTANT FOR DEVELOPERS**: Before making any changes, please read [`FEATURES.md`](./FEATURES.md) to understand all implemented features and [`CONTRIBUTING.md`](./CONTRIBUTING.md) for development guidelines. Use `npm run docs` to open both files.
+
 Notesourcing is a collaborative platform for collecting, organizing, and sharing notes. It aims to serve a wide range of use cases - spiritual or meditative insights, educational resources, or even inventory tracking — while remaining simple and flexible for individuals and communities.
 
 ## 1. Core Features
@@ -98,3 +100,7 @@ Notesourcing is a collaborative platform for collecting, organizing, and sharing
 - Notesourcing interconnects notes and users, forming a shared knowledge graph.
 - Communities cultivate focused domains (e.g., meditation insights, business knowledge, inventory tracking), yet the underlying structure remains universal.
 - By linking notes, fields, and users, Notesourcing enables collective intelligence across diverse topics while respecting each user's privacy choices.
+
+## 11. Implemented features
+
+Should always be mentioned in FEATURES.md so that coders, and AI agents, don't remove them when implementing new features.
