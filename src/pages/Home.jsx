@@ -20,6 +20,27 @@ import {
 import { AuthContext } from "../App";
 import styles from "./Home.module.css";
 
+// Utility function to format user display name
+const formatUserName = (authorEmail) => {
+  if (!authorEmail) return "Utente Sconosciuto";
+
+  // If it looks like an email, extract the name part
+  if (authorEmail.includes("@")) {
+    const namePart = authorEmail.split("@")[0];
+    // Convert camelCase or snake_case to proper case
+    return namePart
+      .replace(/[._]/g, " ")
+      .replace(/([A-Z])/g, " $1")
+      .replace(/\s+/g, " ")
+      .trim()
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  }
+
+  return authorEmail;
+};
+
 export default function Home() {
   const { user, isSuperAdmin } = useContext(AuthContext);
   const [allNotes, setAllNotes] = useState([]);
@@ -64,7 +85,13 @@ export default function Home() {
                 try {
                   const userDoc = await getDoc(doc(db, "users", noteData.uid));
                   if (userDoc.exists()) {
-                    authorEmail = userDoc.data().email || noteData.uid;
+                    const userData = userDoc.data();
+                    // Prefer displayName, then email, then uid
+                    authorEmail =
+                      userData.displayName ||
+                      userData.name ||
+                      userData.email ||
+                      noteData.uid;
                   }
                 } catch (err) {
                   console.log("Could not fetch author email:", err);
@@ -109,7 +136,13 @@ export default function Home() {
                     doc(db, "users", noteData.authorId)
                   );
                   if (userDoc.exists()) {
-                    authorEmail = userDoc.data().email || noteData.authorId;
+                    const userData = userDoc.data();
+                    // Prefer displayName, then email, then authorId
+                    authorEmail =
+                      userData.displayName ||
+                      userData.name ||
+                      userData.email ||
+                      noteData.authorId;
                   }
                 } catch (err) {
                   console.log("Could not fetch author email:", err);
@@ -226,35 +259,57 @@ export default function Home() {
       data-page="home"
       data-realtime-active="true"
     >
-      <h1 className={styles.title}>Benvenuto in NoteSourcing</h1>
+      <h1 className={styles.title}>Note Pubbliche della Community</h1>
       <div className={styles.subtitle}>
         <p>
-          Qui puoi vedere tutte le note pubbliche e condivise dalla community.
+          Esplora tutte le note pubbliche e condivise dalla community. Scopri
+          nuove idee, contribuisci con le tue reazioni e trova ispirazione!
         </p>
-        <div className={styles.links}>
-          {user ? (
-            <>
-              <Link to="/dashboard" className={styles.link}>
-                📊 Il tuo Dashboard
-              </Link>
-              <Link to="/communities" className={styles.link}>
-                👥 Community
-              </Link>
-            </>
-          ) : (
-            <Link to="/login" className={styles.link}>
+        {allNotes.length > 0 && (
+          <div className={styles.stats}>
+            <div className={styles.stat}>
+              <span className={styles.statNumber}>{allNotes.length}</span>
+              <span className={styles.statLabel}>Note Totali</span>
+            </div>
+            <div className={styles.stat}>
+              <span className={styles.statNumber}>
+                {allNotes.filter((note) => note.type === "shared").length}
+              </span>
+              <span className={styles.statLabel}>Note Community</span>
+            </div>
+            <div className={styles.stat}>
+              <span className={styles.statNumber}>
+                {allNotes.filter((note) => note.type === "personal").length}
+              </span>
+              <span className={styles.statLabel}>Note Personali</span>
+            </div>
+          </div>
+        )}
+        {!user && (
+          <div className={styles.loginPrompt}>
+            <Link to="/login" className={styles.loginButton}>
               🔑 Accedi per iniziare
             </Link>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {allNotes.length === 0 ? (
         <div className={styles.noNotes}>
-          <p>Non ci sono ancora note pubbliche.</p>
-          {user && (
+          <h3>🌟 Benvenuto nella community!</h3>
+          <p>Non ci sono ancora note pubbliche da visualizzare.</p>
+          {user ? (
             <p>
-              <Link to="/dashboard">Crea la tua prima nota!</Link>
+              Sii il primo a condividere qualcosa di interessante! <br />
+              <Link to="/dashboard" className={styles.createNoteLink}>
+                ✨ Crea la tua prima nota
+              </Link>
+            </p>
+          ) : (
+            <p>
+              <Link to="/login" className={styles.createNoteLink}>
+                🔑 Accedi per iniziare a contribuire
+              </Link>
             </p>
           )}
         </div>
@@ -262,17 +317,51 @@ export default function Home() {
         <ul className={styles.notesList}>
           {allNotes.map((note) => (
             <li key={note.id} className={styles.noteItem}>
-              <div className={styles.noteContent}>
-                {note.fields ? (
-                  note.fields.map((field, index) => (
-                    <div key={index} className={styles.field}>
-                      <strong>{field.name}:</strong> {field.value}
-                    </div>
-                  ))
-                ) : (
-                  <div>{note.text}</div>
-                )}
-              </div>
+              <Link to={`/note/${note.id}`} className={styles.noteLink}>
+                <div className={styles.noteContent}>
+                  {note.fields ? (
+                    note.fields.map((field, index) => (
+                      <div key={index} className={styles.field}>
+                        <strong>{field.name}:</strong> {field.value}
+                      </div>
+                    ))
+                  ) : (
+                    <div className={styles.noteText}>{note.text}</div>
+                  )}
+                </div>
+
+                <div className={styles.noteMetadata}>
+                  <div className={styles.metadataRow}>
+                    <span className={styles.author}>
+                      👤 {formatUserName(note.authorEmail || note.uid)}
+                    </span>
+                    <span className={styles.date}>
+                      📅{" "}
+                      {note.created?.toDate
+                        ? note.created.toDate().toLocaleDateString("it-IT", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "N/A"}
+                    </span>
+                  </div>
+                  <div className={styles.metadataRow}>
+                    {note.type === "shared" && (
+                      <span className={styles.community}>
+                        🏠 {note.communityName}
+                      </span>
+                    )}
+                    <span className={styles.noteType}>
+                      {note.type === "personal"
+                        ? "📝 Personale"
+                        : "🌐 Condivisa"}
+                    </span>
+                  </div>
+                </div>
+              </Link>
 
               <div className={styles.reactions}>
                 {availableReactions.map((reaction) => {
@@ -283,15 +372,23 @@ export default function Home() {
                   return (
                     <button
                       key={reaction}
-                      onClick={() =>
-                        handleReaction(note.id, note.type, reaction)
-                      }
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleReaction(note.id, note.type, reaction);
+                      }}
                       className={`${styles.reactionButton} ${
                         userReacted ? styles.reacted : ""
                       }`}
                       disabled={!user}
+                      title={
+                        !user
+                          ? "Accedi per reagire"
+                          : userReacted
+                          ? "Rimuovi reazione"
+                          : "Aggiungi reazione"
+                      }
                     >
-                      <span>{reaction}</span>
+                      <span className={styles.emoji}>{reaction}</span>
                       {count > 0 && (
                         <span className={styles.count}>{count}</span>
                       )}
@@ -300,44 +397,20 @@ export default function Home() {
                 })}
               </div>
 
-              <div className={styles.noteFooter}>
-                <div className={styles.noteInfo}>
-                  <span className={styles.author}>
-                    👤 {note.authorEmail || note.uid}
-                  </span>
-                  {note.type === "shared" && (
-                    <span className={styles.community}>
-                      🏠{" "}
-                      <Link to={`/community/${note.communityId}`}>
-                        {note.communityName}
-                      </Link>
-                    </span>
-                  )}
-                  <span className={styles.type}>
-                    {note.type === "personal" ? "📝 Personale" : "🌐 Condivisa"}
-                  </span>
-                  <span className={styles.date}>
-                    📅{" "}
-                    {note.created?.toDate
-                      ? note.created.toDate().toLocaleDateString()
-                      : "N/A"}
-                  </span>
+              {isSuperAdmin && (
+                <div className={styles.adminActions}>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleDeleteNote(note.id, note.type);
+                    }}
+                    className={styles.deleteButton}
+                    title="Elimina nota (Solo Superadmin)"
+                  >
+                    🗑️ Elimina
+                  </button>
                 </div>
-                <div className={styles.actions}>
-                  <Link to={`/note/${note.id}`} className={styles.viewButton}>
-                    👁️ Visualizza
-                  </Link>
-                  {isSuperAdmin && (
-                    <button
-                      onClick={() => handleDeleteNote(note.id, note.type)}
-                      className={styles.deleteButton}
-                      title="Elimina nota (Solo Superadmin)"
-                    >
-                      🗑️ Elimina
-                    </button>
-                  )}
-                </div>
-              </div>
+              )}
             </li>
           ))}
         </ul>

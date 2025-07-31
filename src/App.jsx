@@ -7,6 +7,8 @@ import {
   useNavigate,
 } from "react-router-dom";
 import Home from "./pages/Home";
+import Landing from "./pages/Landing";
+import About from "./pages/About";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Note from "./pages/Note";
@@ -36,19 +38,26 @@ function Layout() {
   return (
     <div className={styles.app}>
       <header className={styles.header}>
-        <Link to="/" className={styles.logo}>
+        <Link
+          to="/landing"
+          className={styles.logo}
+          title="Pagina principale di NoteSourcing"
+        >
           NoteSourcing
         </Link>
         <nav className={styles.nav}>
+          <Link to="/" className={styles.navLink}>
+            � Universe
+          </Link>
           <Link to="/dashboard" className={styles.navLink}>
-            Dashboard
+            📊 Dashboard
           </Link>
           <Link to="/communities" className={styles.navLink}>
-            Community
+            👥 Community
           </Link>
           {isSuperAdmin && (
             <Link to="/user-roles" className={styles.navLink}>
-              Gestione Utenti
+              🛡️ Gestione Utenti
             </Link>
           )}
           {user ? (
@@ -60,7 +69,7 @@ function Layout() {
             </div>
           ) : (
             <Link to="/login" className={styles.navLink}>
-              Login
+              🔑 Login
             </Link>
           )}
         </nav>
@@ -68,6 +77,7 @@ function Layout() {
       <main className={styles.mainContent}>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/landing" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/note/:id" element={<Note />} />
@@ -113,13 +123,17 @@ function App() {
         // Clear from feature monitor
         if (import.meta.env.DEV) {
           window.currentUser = null;
-          window.AuthContext = null;
+          window.AuthContext = {
+            user: null,
+            isAdmin: false,
+            isSuperAdmin: false,
+          };
         }
       }
       setLoading(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [isAdmin, isSuperAdmin]);
 
   if (loading) {
     return <div>Loading...</div>;

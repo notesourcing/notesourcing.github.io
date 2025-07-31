@@ -35,9 +35,29 @@ class FeatureMonitor {
   // Monitor authentication system
   monitorAuthSystem() {
     this.checkComponent("Authentication", () => {
-      if (!window.AuthContext || !window.currentUser) {
-        this.reportMissingFeature("Authentication system");
+      // Check if AuthContext exists and has the expected structure
+      if (!window.AuthContext || typeof window.AuthContext !== "object") {
+        this.reportMissingFeature(
+          "Authentication system - AuthContext missing"
+        );
+        return;
       }
+
+      // AuthContext should have user, isAdmin, and isSuperAdmin properties
+      const authContext = window.AuthContext;
+      if (
+        !authContext.hasOwnProperty("user") ||
+        !authContext.hasOwnProperty("isAdmin") ||
+        !authContext.hasOwnProperty("isSuperAdmin")
+      ) {
+        this.reportMissingFeature(
+          "Authentication system - AuthContext structure invalid"
+        );
+        return;
+      }
+
+      // Authentication system is working correctly
+      // Note: user can be null when not logged in - this is normal behavior
     });
   }
 
@@ -136,14 +156,24 @@ class FeatureMonitor {
     if (this.isMonitoring) return;
 
     console.log("🛡️ Feature Monitor: Starting development monitoring...");
+    console.log(
+      "🔍 Monitoring: Real-time features, Authentication system, SuperAdmin features"
+    );
     this.isMonitoring = true;
 
-    // Run checks every 5 seconds during development
+    // Run initial check after a delay to ensure app is loaded
+    setTimeout(() => {
+      this.monitorRealtimeFeatures();
+      this.monitorAuthSystem();
+      this.monitorSuperAdminFeatures();
+    }, 1000);
+
+    // Run checks every 10 seconds during development (reduced frequency)
     this.monitorInterval = setInterval(() => {
       this.monitorRealtimeFeatures();
       this.monitorAuthSystem();
       this.monitorSuperAdminFeatures();
-    }, 5000);
+    }, 10000);
   }
 
   stopMonitoring() {

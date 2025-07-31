@@ -4,127 +4,385 @@
   padding: 2rem;
 }
 
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
 .title {
-  margin: 0;
+  margin: 0 0 1rem 0;
+  color: #333;
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: 600;
 }
 
 .subtitle {
-  margin: 0;
+  text-align: center;
+  margin-bottom: 2rem;
   color: #6c757d;
+}
+
+.subtitle p {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+}
+
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin: 1.5rem 0;
+  flex-wrap: wrap;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: white;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+  min-width: 120px;
+}
+
+.statNumber {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #007bff;
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-top: 0.25rem;
+  text-align: center;
+}
+
+.loginPrompt {
+  margin-top: 1rem;
 }
 
 .loginButton {
   display: inline-block;
   padding: 12px 24px;
-  background: #007bff;
+  background: linear-gradient(135deg, #007bff, #0056b3);
   color: white;
   text-decoration: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.loginButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 123, 255, 0.4);
+}
+
+.noNotes {
+  text-align: center;
+  padding: 3rem;
+  color: #6c757d;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 12px;
+  margin-top: 2rem;
+}
+
+.noNotes h3 {
+  color: #495057;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.noNotes a {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.createNoteLink {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white !important;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 500;
+  margin-top: 1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.createNoteLink:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 123, 255, 0.4);
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+  color: #6c757d;
+  font-size: 1.1rem;
+}
+
+.error {
+  color: #dc3545;
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
 }
 
 .notesList {
   list-style: none;
   padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 1.5rem;
 }
 
-.noteCard {
+.noteItem {
   background: #fff;
-  margin-bottom: 16px;
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px #0001;
-  border-left: 5px solid #007bff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e9ecef;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  position: relative;
 }
 
-.noteCardShared {
-  border-left-color: #28a745;
+.noteItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.noteLink {
+  display: block;
+  padding: 1.5rem;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
 }
 
 .noteContent {
-  margin-bottom: 8px;
+  margin-bottom: 1rem;
 }
 
-.reactionsContainer {
-  margin-top: 12px;
-  padding-top: 8px;
-  border-top: 1px solid #eee;
+.field {
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+.field strong {
+  color: #333;
+  margin-right: 0.5rem;
+}
+
+.noteText {
+  line-height: 1.6;
+  color: #495057;
+}
+
+.noteMetadata {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.metadataRow {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.metadataRow:last-child {
+  margin-bottom: 0;
+}
+
+.author {
+  color: #495057;
+  font-weight: 500;
+}
+
+.date {
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+
+.community {
+  color: #28a745;
+  font-weight: 500;
+}
+
+.noteType {
+  color: #6c757d;
+  font-size: 0.85rem;
+  background: #f8f9fa;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.reactions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  background: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+  flex-wrap: wrap;
 }
 
 .reactionButton {
-  padding: 4px 8px;
-  border-radius: 16px;
-  border: 1px solid #ccc;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #dee2e6;
+  border-radius: 20px;
   background: white;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
 }
 
-.reactionButtonActive {
-  border: 2px solid #007bff;
+.reactionButton:hover:not(:disabled) {
+  border-color: #007bff;
+  background: #f0f8ff;
+}
+
+.reactionButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.reactionButton.reacted {
   background: #e7f3ff;
+  border-color: #007bff;
+  color: #007bff;
 }
 
-.reactionCount {
-  font-size: 12px;
-  font-weight: bold;
+.emoji {
+  font-size: 1.1rem;
 }
 
-.noteMeta {
-  font-size: 12px;
-  color: #666;
-  margin-top: 12px;
-  padding-top: 8px;
-  border-top: 1px solid #eee;
+.count {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #495057;
 }
 
-.metaItem {
-  margin: 4px 0;
-}
-
-.actionsContainer {
-  display: flex;
-  gap: 8px;
-  align-items: center;
+.adminActions {
+  padding: 0.75rem 1.5rem;
+  background: #fff5f5;
+  border-top: 1px solid #e9ecef;
+  text-align: right;
 }
 
 .deleteButton {
   background: #dc3545;
   color: white;
   border: none;
-  border-radius: 4px;
-  padding: 4px 8px;
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
   cursor: pointer;
-  font-size: 11px;
-  font-weight: bold;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background 0.2s ease;
 }
 
-.emptyState {
-  text-align: center;
-  padding: 3rem;
-  color: #6c757d;
-  background: #f8f9fa;
-  border-radius: 8px;
+.deleteButton:hover {
+  background: #c82333;
 }
 
-.errorState {
-  color: #dc3545;
-  margin-top: 1rem;
-}
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    margin: 1rem;
+    padding: 1rem;
+  }
 
-.loadingState {
-  padding: 2rem;
+  .title {
+    font-size: 2rem;
+  }
+
+  .subtitle p {
+    font-size: 1rem;
+  }
+
+  .noteItem {
+    margin-bottom: 1rem;
+  }
+
+  .noteLink {
+    padding: 1rem;
+  }
+
+  .metadataRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .reactions {
+    padding: 0.75rem 1rem;
+  }
+
+  .reactionButton {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.85rem;
+  }
+
+  .stats {
+    gap: 1rem;
+  }
+
+  .stat {
+    padding: 0.75rem 1rem;
+    min-width: 100px;
+  }
+
+  .statNumber {
+    font-size: 1.5rem;
+  }
+
+  .statLabel {
+    font-size: 0.8rem;
+  }
+}
+@media (max-width: 480px) {
+  .title {
+    font-size: 1.75rem;
+  }
+
+  .reactions {
+    gap: 0.25rem;
+  }
+
+  .reactionButton {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .emoji {
+    font-size: 1rem;
+  }
+
+  .stats {
+    gap: 0.5rem;
+    margin: 1rem 0;
+  }
+
+  .stat {
+    padding: 0.5rem 0.75rem;
+    min-width: 80px;
+  }
+
+  .statNumber {
+    font-size: 1.3rem;
+  }
+
+  .statLabel {
+    font-size: 0.75rem;
+  }
 }
