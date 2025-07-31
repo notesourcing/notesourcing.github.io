@@ -15,6 +15,7 @@ import Note from "./pages/Note";
 import Community from "./pages/Community";
 import Communities from "./pages/Communities";
 import UserRoles from "./pages/UserRoles";
+import Logo from "./components/Logo";
 import { auth, db } from "./firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
@@ -41,10 +42,10 @@ function Layout() {
       <header className={styles.header}>
         <Link
           to="/landing"
-          className={styles.logo}
+          className={styles.logoContainer}
           title="Pagina principale di NoteSourcing"
         >
-          NoteSourcing
+          <Logo size="medium" showText={true} />
         </Link>
         <nav className={styles.nav}>
           <Link

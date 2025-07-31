@@ -30,7 +30,8 @@
   border-bottom: 1px solid #e9ecef;
 }
 
-.logo {
+.logo,
+.logoContainer {
   font-size: 1.5rem;
   font-weight: 700;
   color: #007bff;
@@ -39,7 +40,8 @@
   padding: 0.5rem 0;
 }
 
-.logo:hover {
+.logo:hover,
+.logoContainer:hover {
   color: #0056b3;
   text-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
 }
@@ -112,7 +114,8 @@
     gap: 1rem;
   }
 
-  .logo {
+  .logo,
+  .logoContainer {
     font-size: 1.3rem;
   }
 
@@ -148,7 +151,8 @@
     padding: 0.5rem;
   }
 
-  .logo {
+  .logo,
+  .logoContainer {
     font-size: 1.2rem;
   }
 
