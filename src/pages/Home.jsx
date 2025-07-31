@@ -20,25 +20,19 @@ import {
 import { AuthContext } from "../App";
 import styles from "./Home.module.css";
 
-// Utility function to format user display name
-const formatUserName = (authorEmail) => {
-  if (!authorEmail) return "Utente Sconosciuto";
-
-  // If it looks like an email, extract the name part
-  if (authorEmail.includes("@")) {
-    const namePart = authorEmail.split("@")[0];
-    // Convert camelCase or snake_case to proper case
-    return namePart
-      .replace(/[._]/g, " ")
-      .replace(/([A-Z])/g, " $1")
-      .replace(/\s+/g, " ")
-      .trim()
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(" ");
+// Utility function to format user display name or email
+const formatUserName = (author) => {
+  if (!author) return "Utente Sconosciuto";
+  // If it's an email, show the full email
+  if (typeof author === "string" && author.includes("@")) {
+    return author;
   }
-
-  return authorEmail;
+  // If it's an object with displayName or name
+  if (typeof author === "object" && (author.displayName || author.name)) {
+    return author.displayName || author.name;
+  }
+  // Otherwise, fallback to string
+  return typeof author === "string" ? author : "Utente Sconosciuto";
 };
 
 export default function Home() {
@@ -76,21 +70,27 @@ export default function Home() {
       async (snapshot) => {
         try {
           const notes = await Promise.all(
-            snapshot.docs.map(async (doc) => {
-              const noteData = { id: doc.id, ...doc.data(), type: "personal" };
+            snapshot.docs.map(async (docSnap) => {
+              const noteData = {
+                id: docSnap.id,
+                ...docSnap.data(),
+                type: "personal",
+              };
 
-              // Try to fetch author email if we have auth, otherwise use uid
+              // Always fetch user by uid to get email for display
               let authorEmail = noteData.uid;
-              if (user && noteData.uid) {
+              if (noteData.uid) {
                 try {
-                  const userDoc = await getDoc(doc(db, "users", noteData.uid));
-                  if (userDoc.exists()) {
-                    const userData = userDoc.data();
-                    // Prefer displayName, then email, then uid
+                  const userDocSnap = await getDoc(
+                    doc(db, "users", noteData.uid)
+                  );
+                  if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    // Prefer email, then displayName, then name, then uid
                     authorEmail =
+                      userData.email ||
                       userData.displayName ||
                       userData.name ||
-                      userData.email ||
                       noteData.uid;
                   }
                 } catch (err) {
@@ -123,25 +123,29 @@ export default function Home() {
       async (sharedSnapshot) => {
         try {
           const notes = await Promise.all(
-            sharedSnapshot.docs.map(async (doc) => {
-              const noteData = { id: doc.id, ...doc.data(), type: "shared" };
+            sharedSnapshot.docs.map(async (docSnap) => {
+              const noteData = {
+                id: docSnap.id,
+                ...docSnap.data(),
+                type: "shared",
+              };
 
-              // Try to fetch author email and community name
+              // Always fetch user by uid (authorId) to get email for display
               let authorEmail = noteData.authorId;
               let communityName = "Comunità Sconosciuta";
 
-              if (user && noteData.authorId) {
+              if (noteData.authorId) {
                 try {
-                  const userDoc = await getDoc(
+                  const userDocSnap = await getDoc(
                     doc(db, "users", noteData.authorId)
                   );
-                  if (userDoc.exists()) {
-                    const userData = userDoc.data();
-                    // Prefer displayName, then email, then authorId
+                  if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    // Prefer email, then displayName, then name, then authorId
                     authorEmail =
+                      userData.email ||
                       userData.displayName ||
                       userData.name ||
-                      userData.email ||
                       noteData.authorId;
                   }
                 } catch (err) {
@@ -151,11 +155,11 @@ export default function Home() {
 
               if (noteData.communityId) {
                 try {
-                  const communityDoc = await getDoc(
+                  const communityDocSnap = await getDoc(
                     doc(db, "communities", noteData.communityId)
                   );
-                  if (communityDoc.exists()) {
-                    communityName = communityDoc.data().name;
+                  if (communityDocSnap.exists()) {
+                    communityName = communityDocSnap.data().name;
                   }
                 } catch (err) {
                   console.log("Could not fetch community name:", err);

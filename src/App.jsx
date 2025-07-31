@@ -6,6 +6,7 @@ import {
   Link,
   useNavigate,
 } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -24,6 +25,7 @@ export const AuthContext = createContext(null);
 function Layout() {
   const { user, isSuperAdmin } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = async () => {
     try {
@@ -45,17 +47,45 @@ function Layout() {
           NoteSourcing
         </Link>
         <nav className={styles.nav}>
-          <Link to="/" className={styles.navLink}>
-            � Universe
+          <Link
+            to="/"
+            className={
+              location.pathname === "/"
+                ? `${styles.navLink} ${styles.activeNavLink}`
+                : styles.navLink
+            }
+          >
+            🗒️ All notes
           </Link>
-          <Link to="/dashboard" className={styles.navLink}>
+          <Link
+            to="/dashboard"
+            className={
+              location.pathname === "/dashboard"
+                ? `${styles.navLink} ${styles.activeNavLink}`
+                : styles.navLink
+            }
+          >
             📊 Dashboard
           </Link>
-          <Link to="/communities" className={styles.navLink}>
+          <Link
+            to="/communities"
+            className={
+              location.pathname === "/communities"
+                ? `${styles.navLink} ${styles.activeNavLink}`
+                : styles.navLink
+            }
+          >
             👥 Community
           </Link>
           {isSuperAdmin && (
-            <Link to="/user-roles" className={styles.navLink}>
+            <Link
+              to="/user-roles"
+              className={
+                location.pathname === "/user-roles"
+                  ? `${styles.navLink} ${styles.activeNavLink}`
+                  : styles.navLink
+              }
+            >
               🛡️ Gestione Utenti
             </Link>
           )}
@@ -67,7 +97,14 @@ function Layout() {
               </button>
             </div>
           ) : (
-            <Link to="/login" className={styles.navLink}>
+            <Link
+              to="/login"
+              className={
+                location.pathname === "/login"
+                  ? `${styles.navLink} ${styles.activeNavLink}`
+                  : styles.navLink
+              }
+            >
               🔑 Login
             </Link>
           )}
