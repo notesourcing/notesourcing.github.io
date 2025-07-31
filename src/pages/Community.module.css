@@ -227,6 +227,27 @@
   cursor: not-allowed;
 }
 
+.leaveButton {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.leaveButton:hover:not(:disabled) {
+  background-color: #c82333;
+}
+
+.leaveButton:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .container {
@@ -234,8 +255,19 @@
     margin: 1rem auto;
   }
 
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
   .title {
     font-size: 1.5rem;
+  }
+
+  .leaveButton {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
   }
 
   .statsGrid {
@@ -263,5 +295,10 @@
 @media (max-width: 480px) {
   .statsGrid {
     grid-template-columns: 1fr;
+  }
+
+  .header {
+    text-align: center;
+    align-items: center;
   }
 }

@@ -43,6 +43,7 @@ export default function Community() {
   const [hasRequestedJoin, setHasRequestedJoin] = useState(false);
   const [requestingJoin, setRequestingJoin] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
+  const [leavingCommunity, setLeavingCommunity] = useState(false);
   const [communityStats, setCommunityStats] = useState({
     memberCount: 0,
     noteCount: 0,
@@ -130,9 +131,24 @@ export default function Community() {
   useEffect(() => {
     if (!community) return;
 
-    const memberCount = community.members ? community.members.length : 0;
+    let currentCommunity = community;
     let currentNotes = [];
     let currentCommentCount = 0;
+
+    // Set up real-time listener for the community document (for member count updates)
+    const communityDocRef = doc(db, "communities", id);
+    const unsubscribeCommunity = onSnapshot(
+      communityDocRef,
+      (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          currentCommunity = { id: docSnapshot.id, ...docSnapshot.data() };
+          updateStats();
+        }
+      },
+      (err) => {
+        console.error("Error with community listener for stats:", err);
+      }
+    );
 
     // Set up real-time listener for ALL notes in the community
     const allNotesQuery = query(
@@ -176,14 +192,18 @@ export default function Community() {
     );
 
     const updateStats = () => {
+      const memberCount = currentCommunity.members
+        ? currentCommunity.members.length
+        : 0;
+
       if (currentNotes.length === 0) {
         setCommunityStats({
           memberCount,
           noteCount: 0,
           totalComments: currentCommentCount,
           totalReactions: 0,
-          lastActivity: community.created?.toDate
-            ? community.created.toDate()
+          lastActivity: currentCommunity.created?.toDate
+            ? currentCommunity.created.toDate()
             : null,
         });
         return;
@@ -203,8 +223,8 @@ export default function Community() {
       }, 0);
 
       // Find last activity (most recent note or community creation)
-      let lastActivity = community.created?.toDate
-        ? community.created.toDate()
+      let lastActivity = currentCommunity.created?.toDate
+        ? currentCommunity.created.toDate()
         : null;
       if (currentNotes.length > 0) {
         // Sort all notes by creation date to find the most recent
@@ -231,6 +251,7 @@ export default function Community() {
     };
 
     return () => {
+      unsubscribeCommunity();
       unsubscribeNotes();
       unsubscribeComments();
     };
@@ -284,6 +305,40 @@ export default function Community() {
       setError("Errore durante l'invio della richiesta di adesione.");
     } finally {
       setRequestingJoin(false);
+    }
+  };
+
+  const handleLeaveCommunity = async () => {
+    if (!user || !isMember || leavingCommunity || isCreator) return;
+
+    // Confirm with user
+    if (!window.confirm("Sei sicuro di voler lasciare questa community?")) {
+      return;
+    }
+
+    setLeavingCommunity(true);
+    setError("");
+
+    try {
+      const communityRef = doc(db, "communities", id);
+      await updateDoc(communityRef, {
+        members: arrayRemove(user.uid),
+      });
+
+      // Update local state
+      setIsMember(false);
+      setCommunity((prev) => ({
+        ...prev,
+        members: prev.members.filter((memberId) => memberId !== user.uid),
+      }));
+
+      // Navigate back to communities page
+      navigate("/communities");
+    } catch (err) {
+      console.error("Error leaving community:", err);
+      setError("Errore durante l'uscita dalla community.");
+    } finally {
+      setLeavingCommunity(false);
     }
   };
 
@@ -349,6 +404,16 @@ export default function Community() {
     <div className={styles.container}>
       <div className={styles.header}>
         <h1 className={styles.title}>{community.name}</h1>
+        {/* Leave Community Button - only for non-creator members */}
+        {isMember && !isCreator && (
+          <button
+            className={styles.leaveButton}
+            onClick={handleLeaveCommunity}
+            disabled={leavingCommunity}
+          >
+            {leavingCommunity ? "Uscita in corso..." : "Lascia Community"}
+          </button>
+        )}
       </div>
 
       {/* Community Description */}
