@@ -24,6 +24,7 @@ import {
   arrayRemove,
   serverTimestamp,
 } from "firebase/firestore";
+import { enrichNotesWithUserData } from "../utils/userUtils";
 import NewNoteForm from "../components/NewNoteForm";
 import NoteCard from "../components/NoteCard";
 import JoinRequestManager from "../components/JoinRequestManager";
@@ -110,12 +111,18 @@ export default function Community() {
 
       const unsubscribe = onSnapshot(
         notesQuery,
-        (snapshot) => {
-          const notes = snapshot.docs.map((doc) => ({
+        async (snapshot) => {
+          const rawNotes = snapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
           }));
-          setSharedNotes(notes);
+
+          // Enrich notes with user display data
+          const enrichedNotes = await enrichNotesWithUserData(
+            rawNotes,
+            "authorId"
+          );
+          setSharedNotes(enrichedNotes);
         },
         (err) => {
           console.error("Error fetching shared notes:", err);

@@ -15,6 +15,7 @@ import Note from "./pages/Note";
 import Community from "./pages/Community";
 import Communities from "./pages/Communities";
 import UserRoles from "./pages/UserRoles";
+import Profile from "./pages/Profile";
 import Logo from "./components/Logo";
 import { auth, db } from "./firebase";
 import { doc, getDoc } from "firebase/firestore";
@@ -92,6 +93,17 @@ function Layout() {
           )}
           {user ? (
             <div className={styles.userInfo}>
+              <Link
+                to="/profile"
+                className={
+                  location.pathname === "/profile"
+                    ? `${styles.navLink} ${styles.activeNavLink}`
+                    : styles.navLink
+                }
+                title="Il mio profilo"
+              >
+                👤 Profilo
+              </Link>
               <span className={styles.userEmail}>{user.email}</span>
               <button onClick={handleLogout} className={styles.logoutButton}>
                 Logout
@@ -121,6 +133,7 @@ function Layout() {
           <Route path="/community/:id" element={<Community />} />
           <Route path="/communities" element={<Communities />} />
           <Route path="/user-roles" element={<UserRoles />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </main>
     </div>

@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { formatUserDisplayName } from "../utils/userUtils";
 import styles from "./NoteCard.module.css";
 
 export default function NoteCard({
@@ -31,11 +32,6 @@ export default function NoteCard({
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
-
-  const formatUserName = (email) => {
-    if (!email) return "Utente Sconosciuto";
-    return email.split("@")[0];
   };
 
   return (
@@ -75,7 +71,7 @@ export default function NoteCard({
         <div className={styles.noteMetadata}>
           <div className={styles.metadataRow}>
             <span className={styles.author}>
-              👤 {formatUserName(note.authorEmail || note.uid)}
+              👤 {formatUserDisplayName(note)}
             </span>
             <span className={styles.noteType}>
               {note.type === "personal" ? "📝 Personale" : "🌐 Condivisa"}

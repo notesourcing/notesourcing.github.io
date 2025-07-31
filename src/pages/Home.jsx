@@ -19,6 +19,7 @@ import {
   arrayUnion,
   arrayRemove,
 } from "firebase/firestore";
+import { enrichNoteWithUserData } from "../utils/userUtils";
 import NoteCard from "../components/NoteCard";
 import { useCommentCounts } from "../hooks/useCommentCounts";
 import styles from "./Home.module.css";
@@ -68,28 +69,8 @@ export default function Home() {
                 type: "personal",
               };
 
-              // Always fetch user by uid to get email for display
-              let authorEmail = noteData.uid;
-              if (noteData.uid) {
-                try {
-                  const userDocSnap = await getDoc(
-                    doc(db, "users", noteData.uid)
-                  );
-                  if (userDocSnap.exists()) {
-                    const userData = userDocSnap.data();
-                    // Prefer email, then displayName, then name, then uid
-                    authorEmail =
-                      userData.email ||
-                      userData.displayName ||
-                      userData.name ||
-                      noteData.uid;
-                  }
-                } catch (err) {
-                  console.log("Could not fetch author email:", err);
-                }
-              }
-
-              return { ...noteData, authorEmail };
+              // Enrich with user display data
+              return enrichNoteWithUserData(noteData, "uid");
             })
           );
           setPersonalNotes(notes);
@@ -121,29 +102,14 @@ export default function Home() {
                 type: "shared",
               };
 
-              // Always fetch user by uid (authorId) to get email for display
-              let authorEmail = noteData.authorId;
+              // Enrich with user display data
+              const enrichedNote = await enrichNoteWithUserData(
+                noteData,
+                "authorId"
+              );
+
+              // Also fetch community name
               let communityName = "Comunità Sconosciuta";
-
-              if (noteData.authorId) {
-                try {
-                  const userDocSnap = await getDoc(
-                    doc(db, "users", noteData.authorId)
-                  );
-                  if (userDocSnap.exists()) {
-                    const userData = userDocSnap.data();
-                    // Prefer email, then displayName, then name, then authorId
-                    authorEmail =
-                      userData.email ||
-                      userData.displayName ||
-                      userData.name ||
-                      noteData.authorId;
-                  }
-                } catch (err) {
-                  console.log("Could not fetch author email:", err);
-                }
-              }
-
               if (noteData.communityId) {
                 try {
                   const communityDocSnap = await getDoc(
@@ -157,7 +123,7 @@ export default function Home() {
                 }
               }
 
-              return { ...noteData, authorEmail, communityName };
+              return { ...enrichedNote, communityName };
             })
           );
           setSharedNotes(notes);

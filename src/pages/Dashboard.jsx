@@ -25,6 +25,7 @@ import {
   arrayUnion,
   arrayRemove,
 } from "firebase/firestore";
+import { enrichNotesWithUserData } from "../utils/userUtils";
 import NewNoteForm from "../components/NewNoteForm";
 import NoteCard from "../components/NoteCard";
 import { useCommentCounts } from "../hooks/useCommentCounts";
@@ -61,13 +62,16 @@ export default function Dashboard() {
     );
     const unsubNotes = onSnapshot(
       notesQuery,
-      (snapshot) => {
-        const loadedNotes = snapshot.docs.map((doc) => ({
+      async (snapshot) => {
+        const rawNotes = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
           type: "personal",
         }));
-        setNotes(loadedNotes);
+
+        // Enrich with user display data
+        const enrichedNotes = await enrichNotesWithUserData(rawNotes, "uid");
+        setNotes(enrichedNotes);
       },
       (err) => {
         console.error("Error fetching notes:", err);
@@ -90,9 +94,15 @@ export default function Dashboard() {
           type: "shared",
         }));
 
+        // Enrich with user display data
+        const enrichedNotes = await enrichNotesWithUserData(
+          loadedSharedNotes,
+          "authorId"
+        );
+
         // Fetch community names for shared notes in real-time
         const notesWithCommunities = await Promise.all(
-          loadedSharedNotes.map(async (note) => {
+          enrichedNotes.map(async (note) => {
             if (note.communityId) {
               try {
                 const communityDoc = await getDoc(
