@@ -27,10 +27,24 @@ export default function Note() {
     const fetchNote = async () => {
       setLoading(true);
       try {
-        const noteDoc = await getDoc(doc(db, "notes", id));
+        // Try personal note first
+        let noteDoc = await getDoc(doc(db, "notes", id));
+        let noteData = null;
         if (noteDoc.exists()) {
-          const noteData = { id: noteDoc.id, ...noteDoc.data() };
-          if (noteData.uid !== user.uid) {
+          noteData = { id: noteDoc.id, ...noteDoc.data(), type: "personal" };
+        } else {
+          // Try shared note
+          noteDoc = await getDoc(doc(db, "sharedNotes", id));
+          if (noteDoc.exists()) {
+            noteData = { id: noteDoc.id, ...noteDoc.data(), type: "shared" };
+          }
+        }
+        if (noteData) {
+          // Permission: personal note must be owned, shared note must be authored
+          if (
+            (noteData.type === "personal" && noteData.uid !== user.uid) ||
+            (noteData.type === "shared" && noteData.authorId !== user.uid)
+          ) {
             setError("Non hai il permesso di visualizzare questa nota.");
           } else {
             setNote(noteData);
@@ -58,7 +72,8 @@ export default function Note() {
     }
     setError("");
     try {
-      await updateDoc(doc(db, "notes", id), {
+      const collectionName = note.type === "shared" ? "sharedNotes" : "notes";
+      await updateDoc(doc(db, collectionName, id), {
         fields: editFields,
         lastModified: Timestamp.now(),
       });
@@ -77,7 +92,8 @@ export default function Note() {
   const handleDelete = async () => {
     if (window.confirm("Sei sicuro di voler eliminare questa nota?")) {
       try {
-        await deleteDoc(doc(db, "notes", id));
+        const collectionName = note.type === "shared" ? "sharedNotes" : "notes";
+        await deleteDoc(doc(db, collectionName, id));
         navigate("/dashboard");
       } catch (err) {
         console.error("Error deleting note:", err);

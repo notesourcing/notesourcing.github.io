@@ -259,11 +259,24 @@ export default function Dashboard() {
                       >
                         {note.type === "personal" ? "Personale" : "Condivisa"}
                       </span>
-                      {note.type === "shared" && note.communityName && (
-                        <span className={styles.communityName}>
-                          in {note.communityName}
-                        </span>
-                      )}
+                      {note.type === "shared" &&
+                        note.communityName &&
+                        note.communityId && (
+                          <span
+                            className={styles.communityName}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.location.hash = `#/community/${note.communityId}`;
+                            }}
+                            style={{
+                              cursor: "pointer",
+                              textDecoration: "underline",
+                            }}
+                            title={`Vai alla community: ${note.communityName}`}
+                          >
+                            in {note.communityName}
+                          </span>
+                        )}
                       <span className={styles.noteDate}>
                         {note.created?.toDate
                           ? note.created.toDate().toLocaleDateString()
