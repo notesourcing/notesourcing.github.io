@@ -10,22 +10,22 @@ const path = require("path");
 
 const CRITICAL_FEATURES = [
   {
-    name: "Real-time listeners in Dashboard",
-    file: "src/pages/Dashboard.jsx",
-    pattern: /onSnapshot.*notes/,
-    description: "Dashboard must have real-time personal notes listener",
-  },
-  {
     name: "Real-time listeners in Home",
     file: "src/pages/Home.jsx",
     pattern: /onSnapshot/,
-    description: "Home page must have real-time listeners for notes",
+    description: "Home must have real-time personal and shared notes listeners",
   },
   {
-    name: "SuperAdmin role check in Dashboard",
-    file: "src/pages/Dashboard.jsx",
+    name: "SuperAdmin role check in Home",
+    file: "src/pages/Home.jsx",
     pattern: /SuperAdmin/,
-    description: "Dashboard must preserve SuperAdmin functionality",
+    description: "Home must preserve SuperAdmin functionality",
+  },
+  {
+    name: "Note creation functionality in Home",
+    file: "src/pages/Home.jsx",
+    pattern: /handleAddNote|addDoc/,
+    description: "Home must allow creating personal and shared notes",
   },
   {
     name: "Community shared notes functionality",
@@ -47,9 +47,9 @@ const CRITICAL_FEATURES = [
   },
   {
     name: "Real-time cleanup in useEffect",
-    file: "src/pages/Dashboard.jsx",
-    pattern: /unsubNotes\(\)|unsubSharedNotes\(\)/,
-    description: "Dashboard must properly cleanup real-time listeners",
+    file: "src/pages/Home.jsx",
+    pattern: /unsubscribe|unsubPersonalNotes|unsubSharedNotes/,
+    description: "Home must properly cleanup real-time listeners",
   },
   {
     name: "Note page exists",
@@ -64,10 +64,16 @@ const CRITICAL_FEATURES = [
     description: "Home page must maintain note reactions",
   },
   {
-    name: "Communities link in Dashboard",
-    file: "src/pages/Dashboard.jsx",
+    name: "Communities link in Navigation",
+    file: "src/App.jsx",
     pattern: /comunità|communities/i,
-    description: "Dashboard must link to Communities page",
+    description: "App must link to Communities page",
+  },
+  {
+    name: "Note filtering functionality",
+    file: "src/pages/Home.jsx",
+    pattern: /filterType|filter.*notes/i,
+    description: "Home must provide note filtering capabilities",
   },
 ];
 

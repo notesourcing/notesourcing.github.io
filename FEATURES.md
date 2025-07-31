@@ -4,6 +4,10 @@
 
 This document tracks all implemented features to prevent accidental removal during development and refactoring. Always consult this list before making changes to ensure existing functionality is preserved.
 
+## 🏗️ Recent Architecture Changes
+
+**Dashboard Consolidation (2025-01-31)**: The Dashboard functionality has been consolidated into the Home page for a unified user experience. All Dashboard features (personal note creation, real-time updates, SuperAdmin functionality) are now available in the enhanced Home page with improved filtering capabilities.
+
 ---
 
 ## 🔐 Authentication & User Management
@@ -27,8 +31,8 @@ This document tracks all implemented features to prevent accidental removal duri
 
 ### ✅ Personal Notes
 
-- **Create**: Add personal notes via Dashboard
-- **Read**: View personal notes in Dashboard and Note detail page
+- **Create**: Add personal notes via Home page with integrated note creation form
+- **Read**: View personal notes in Home and Note detail page
 - **Update**: Edit notes via Note detail page
 - **Delete**: Remove personal notes (with confirmation)
 - **Real-time Updates**: Notes appear instantly via onSnapshot listeners
@@ -36,8 +40,8 @@ This document tracks all implemented features to prevent accidental removal duri
 
 ### ✅ Shared Notes (Community Notes)
 
-- **Create**: Add notes within communities
-- **Read**: View shared notes in community pages, home, and all-notes
+- **Create**: Add notes within communities or from Home page to specific communities
+- **Read**: View shared notes in community pages, home, and filtered views
 - **Update**: Edit shared notes (author or admin permissions)
 - **Delete**: Remove shared notes (author, admin, or superadmin)
 - **Real-time Updates**: Community notes appear instantly across all pages
@@ -45,9 +49,9 @@ This document tracks all implemented features to prevent accidental removal duri
 
 ### ✅ Note Display & Navigation
 
-- **Dashboard**: User's personal and shared notes list
-- **Home Page**: Public feed of all notes (personal + shared)
-- **All Notes Page**: SuperAdmin view of all notes in system
+- **Home Page**: Unified view of all notes (personal + shared) with filtering and creation capabilities
+- **Note Filtering**: Filter by "All Notes", "My Notes", "Personal Notes Only", "Community Notes Only"
+- **Note Creation**: Integrated note creation form in Home page with community selection
 - **Note Detail Page**: Individual note view/edit interface with read-only mode for non-authors
 - **Community Pages**: Community-specific note feeds
 - **Public Viewing**: All notes are publicly viewable (consistent with home page display)
@@ -112,11 +116,10 @@ This document tracks all implemented features to prevent accidental removal duri
 
 ### ✅ Live Updates
 
-- **Dashboard Notes**: Personal and shared notes update in real-time
-- **Home Feed**: All public notes update instantly
+- **Home Page Notes**: Personal and shared notes update in real-time with filtering
 - **Community Notes**: Notes within communities appear immediately
 - **Communities List**: New communities appear instantly
-- **All Notes Admin View**: SuperAdmin sees all notes in real-time
+- **SuperAdmin Views**: All administrative functions maintain real-time updates
 
 ### ✅ Data Synchronization
 

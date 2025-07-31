@@ -58,7 +58,7 @@ export default function UserRoles() {
       <div className={styles.container}>
         <h2>Accesso Negato</h2>
         <p>Solo i superadmin possono accedere a questa pagina.</p>
-        <Link to="/dashboard">← Torna al Dashboard</Link>
+        <Link to="/">← Torna alle Note</Link>
       </div>
     );
   }
@@ -71,7 +71,7 @@ export default function UserRoles() {
     <div className={styles.container}>
       <div className={styles.header}>
         <h2>Gestione Ruoli Utenti</h2>
-        <Link to="/dashboard">← Torna al Dashboard</Link>
+        <Link to="/">← Torna alle Note</Link>
       </div>
 
       {error && <div className={styles.error}>{error}</div>}

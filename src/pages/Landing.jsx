@@ -33,9 +33,9 @@ export default function Landing() {
           </Link>
 
           {user ? (
-            <Link to="/dashboard" className={styles.actionCard}>
-              <div className={styles.cardIcon}>📊</div>
-              <h3>Il Tuo Dashboard</h3>
+            <Link to="/" className={styles.actionCard}>
+              <div className={styles.cardIcon}>�</div>
+              <h3>Le Tue Note</h3>
               <p>Gestisci le tue note personali e condivise</p>
             </Link>
           ) : (

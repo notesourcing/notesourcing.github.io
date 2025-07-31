@@ -5,12 +5,12 @@ import {
   Route,
   Link,
   useNavigate,
+  Navigate,
 } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
 import Note from "./pages/Note";
 import Community from "./pages/Community";
 import Communities from "./pages/Communities";
@@ -68,17 +68,7 @@ function Layout() {
                 : styles.navLink
             }
           >
-            🗒️ All notes
-          </Link>
-          <Link
-            to="/dashboard"
-            className={
-              location.pathname === "/dashboard"
-                ? `${styles.navLink} ${styles.activeNavLink}`
-                : styles.navLink
-            }
-          >
-            📊 Dashboard
+            � Tutte le Note
           </Link>
           <Link
             to="/communities"
@@ -138,7 +128,8 @@ function Layout() {
           <Route path="/" element={<Home />} />
           <Route path="/landing" element={<Landing />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          {/* Redirect dashboard to home */}
+          <Route path="/dashboard" element={<Navigate to="/" replace />} />
           <Route path="/note/:id" element={<Note />} />
           <Route path="/community/:id" element={<Community />} />
           <Route path="/communities" element={<Communities />} />

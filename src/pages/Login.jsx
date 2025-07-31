@@ -23,7 +23,7 @@ export default function Login() {
 
   useEffect(() => {
     if (user) {
-      navigate("/dashboard");
+      navigate("/");
     }
   }, [user, navigate]);
 
@@ -39,7 +39,7 @@ export default function Login() {
         role: "user",
       });
     }
-    navigate("/dashboard");
+    navigate("/");
   };
 
   const handleEmailAuth = async (e) => {

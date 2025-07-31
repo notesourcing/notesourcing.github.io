@@ -97,7 +97,7 @@ export default function Note() {
       try {
         const collectionName = note.type === "shared" ? "sharedNotes" : "notes";
         await deleteDoc(doc(db, collectionName, id));
-        navigate("/dashboard");
+        navigate("/");
       } catch (err) {
         console.error("Error deleting note:", err);
         setError("Errore durante l'eliminazione della nota.");
@@ -136,8 +136,8 @@ export default function Note() {
     return (
       <div className={styles.container}>
         <p className={styles.error}>{error}</p>
-        <Link to="/dashboard" className={styles.backLink}>
-          ← Torna al Dashboard
+        <Link to="/" className={styles.backLink}>
+          ← Torna alle Note
         </Link>
       </div>
     );
@@ -153,8 +153,8 @@ export default function Note() {
         <h1 className={styles.title}>
           {editing ? "Modifica Nota" : "Dettaglio Nota"}
         </h1>
-        <Link to="/dashboard" className={styles.backLink}>
-          ← Torna al Dashboard
+        <Link to="/" className={styles.backLink}>
+          ← Torna alle Note
         </Link>
       </div>
 
