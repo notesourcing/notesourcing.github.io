@@ -239,6 +239,7 @@ export default function Dashboard() {
 
     try {
       await updateDoc(noteRef, { reactions: updatedReactions });
+      // Update local state immediately for better UX
       setAllUserNotes(
         allUserNotes.map((n) =>
           n.id === noteId ? { ...n, reactions: updatedReactions } : n

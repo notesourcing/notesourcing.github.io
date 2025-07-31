@@ -194,6 +194,7 @@ export default function Home() {
     let updatedReactions = { ...currentReactions };
 
     if (reactionUids.includes(userUid)) {
+      // Remove user's reaction
       updatedReactions[reaction] = reactionUids.filter(
         (uid) => uid !== userUid
       );
@@ -201,11 +202,13 @@ export default function Home() {
         delete updatedReactions[reaction];
       }
     } else {
+      // Add user's reaction
       updatedReactions[reaction] = [...reactionUids, userUid];
     }
 
     try {
       await updateDoc(noteRef, { reactions: updatedReactions });
+      // Update local state immediately for better UX
       setAllNotes(
         allNotes.map((n) =>
           n.id === noteId ? { ...n, reactions: updatedReactions } : n

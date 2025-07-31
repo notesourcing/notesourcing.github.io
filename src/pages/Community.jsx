@@ -153,6 +153,7 @@ export default function Community() {
 
     try {
       await updateDoc(noteRef, { reactions: updatedReactions });
+      // Update local state immediately for better UX
       setSharedNotes(
         sharedNotes.map((n) =>
           n.id === noteId ? { ...n, reactions: updatedReactions } : n

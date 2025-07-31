@@ -146,6 +146,7 @@ export default function AllNotes() {
 
     try {
       await updateDoc(noteRef, { reactions: updatedReactions });
+      // Update local state immediately for better UX
       setAllNotes(
         allNotes.map((n) =>
           n.id === noteId ? { ...n, reactions: updatedReactions } : n
