@@ -126,108 +126,115 @@ export default function Community() {
     }
   }, [id, user, isMember]);
 
-  // Calculate community statistics
+  // Calculate community statistics with real-time updates
   useEffect(() => {
     if (!community) return;
 
-    const calculateStats = async () => {
-      const memberCount = community.members ? community.members.length : 0;
+    const memberCount = community.members ? community.members.length : 0;
+    let currentNotes = [];
+    let currentCommentCount = 0;
 
-      // Get ALL notes for this community (not just the ones currently loaded)
-      const allNotesQuery = query(
-        collection(db, "sharedNotes"),
-        where("communityId", "==", id)
-      );
+    // Set up real-time listener for ALL notes in the community
+    const allNotesQuery = query(
+      collection(db, "sharedNotes"),
+      where("communityId", "==", id)
+    );
 
-      try {
-        const allNotesSnapshot = await getDocs(allNotesQuery);
-        const allNotes = allNotesSnapshot.docs.map((doc) => ({
+    const unsubscribeNotes = onSnapshot(
+      allNotesQuery,
+      (snapshot) => {
+        currentNotes = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
 
-        const noteCount = allNotes.length;
+        updateStats();
+      },
+      (err) => {
+        console.error("Error with notes listener for stats:", err);
+      }
+    );
 
-        // Calculate total comments for ALL notes in the community
-        let totalComments = 0;
-        if (allNotes.length > 0) {
-          const noteIds = allNotes.map((note) => note.id);
+    // Set up real-time listener for ALL comments related to community notes
+    const commentsQuery = query(collection(db, "comments"));
 
-          // Handle Firestore's "in" query limit of 10 items by batching
-          const batchSize = 10;
-          const batches = [];
-          for (let i = 0; i < noteIds.length; i += batchSize) {
-            const batch = noteIds.slice(i, i + batchSize);
-            batches.push(batch);
-          }
+    const unsubscribeComments = onSnapshot(
+      commentsQuery,
+      (snapshot) => {
+        // Filter comments that belong to notes in this community
+        const noteIds = currentNotes.map((note) => note.id);
+        const communityComments = snapshot.docs.filter((doc) =>
+          noteIds.includes(doc.data().noteId)
+        );
+        currentCommentCount = communityComments.length;
 
-          // Execute all batches and sum the results
-          for (const batch of batches) {
-            const commentsQuery = query(
-              collection(db, "comments"),
-              where("noteId", "in", batch)
-            );
-            const commentsSnapshot = await getDocs(commentsQuery);
-            totalComments += commentsSnapshot.docs.length;
-          }
-        }
+        updateStats();
+      },
+      (err) => {
+        console.error("Error with comments listener for stats:", err);
+      }
+    );
 
-        // Calculate total reactions for ALL notes
-        const totalReactions = allNotes.reduce((sum, note) => {
-          if (!note.reactions) return sum;
-          return (
-            sum +
-            Object.values(note.reactions).reduce(
-              (reactionSum, userArray) =>
-                reactionSum + (Array.isArray(userArray) ? userArray.length : 0),
-              0
-            )
-          );
-        }, 0);
-
-        // Find last activity (most recent note or community creation)
-        let lastActivity = community.created?.toDate
-          ? community.created.toDate()
-          : null;
-        if (allNotes.length > 0) {
-          // Sort all notes by creation date to find the most recent
-          const sortedNotes = allNotes.sort((a, b) => {
-            const dateA = a.created?.toDate ? a.created.toDate() : new Date(0);
-            const dateB = b.created?.toDate ? b.created.toDate() : new Date(0);
-            return dateB - dateA;
-          });
-          const lastNoteDate = sortedNotes[0]?.created?.toDate
-            ? sortedNotes[0].created.toDate()
-            : null;
-          if (lastNoteDate && (!lastActivity || lastNoteDate > lastActivity)) {
-            lastActivity = lastNoteDate;
-          }
-        }
-
+    const updateStats = () => {
+      if (currentNotes.length === 0) {
         setCommunityStats({
           memberCount,
-          noteCount,
-          totalComments,
-          totalReactions,
-          lastActivity,
-        });
-      } catch (err) {
-        console.error("Error calculating community stats:", err);
-        // Fallback to basic stats if detailed calculation fails
-        setCommunityStats({
-          memberCount,
-          noteCount: sharedNotes.length,
-          totalComments: 0,
+          noteCount: 0,
+          totalComments: currentCommentCount,
           totalReactions: 0,
           lastActivity: community.created?.toDate
             ? community.created.toDate()
             : null,
         });
+        return;
       }
+
+      // Calculate total reactions for ALL notes (real-time updates)
+      const totalReactions = currentNotes.reduce((sum, note) => {
+        if (!note.reactions) return sum;
+        return (
+          sum +
+          Object.values(note.reactions).reduce(
+            (reactionSum, userArray) =>
+              reactionSum + (Array.isArray(userArray) ? userArray.length : 0),
+            0
+          )
+        );
+      }, 0);
+
+      // Find last activity (most recent note or community creation)
+      let lastActivity = community.created?.toDate
+        ? community.created.toDate()
+        : null;
+      if (currentNotes.length > 0) {
+        // Sort all notes by creation date to find the most recent
+        const sortedNotes = [...currentNotes].sort((a, b) => {
+          const dateA = a.created?.toDate ? a.created.toDate() : new Date(0);
+          const dateB = b.created?.toDate ? b.created.toDate() : new Date(0);
+          return dateB - dateA;
+        });
+        const lastNoteDate = sortedNotes[0]?.created?.toDate
+          ? sortedNotes[0].created.toDate()
+          : null;
+        if (lastNoteDate && (!lastActivity || lastNoteDate > lastActivity)) {
+          lastActivity = lastNoteDate;
+        }
+      }
+
+      setCommunityStats({
+        memberCount,
+        noteCount: currentNotes.length,
+        totalComments: currentCommentCount,
+        totalReactions,
+        lastActivity,
+      });
     };
 
-    calculateStats();
-  }, [community, id]); // Removed sharedNotes and commentCounts dependencies
+    return () => {
+      unsubscribeNotes();
+      unsubscribeComments();
+    };
+  }, [community, id]);
 
   const handleAddSharedNote = async (fields, selectedCommunityId) => {
     if (!user) return;
