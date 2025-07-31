@@ -21,6 +21,11 @@ export default function NewNoteForm({
 
   const [selectedCommunityId, setSelectedCommunityId] = useState("");
 
+  // Attribution fields
+  const [attributionType, setAttributionType] = useState("self"); // "self", "other", "pseudonym", "eteronym", "anonymous"
+  const [attributionName, setAttributionName] = useState("");
+  const [revealPseudonym, setRevealPseudonym] = useState(false); // For pseudonym/eteronym reveal option
+
   const handleFieldChange = (index, fieldName, value) => {
     const updatedFields = [...fields];
     updatedFields[index] = { ...updatedFields[index], [fieldName]: value };
@@ -39,7 +44,15 @@ export default function NewNoteForm({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (fields.every((f) => !f.value.trim())) return;
-    onSubmit(fields, selectedCommunityId);
+
+    // Prepare attribution data
+    const attributionData = {
+      type: attributionType,
+      name: attributionName,
+      revealPseudonym: revealPseudonym,
+    };
+
+    onSubmit(fields, selectedCommunityId, attributionData);
   };
 
   return (
@@ -81,6 +94,117 @@ export default function NewNoteForm({
           )}
         </div>
       )}
+
+      {/* Attribution Section */}
+      <div className={styles.attributionSection}>
+        <label className={styles.label}>Attribuire questa nota a:</label>
+        <div className={styles.attributionOptions}>
+          <div className={styles.radioGroup}>
+            <label className={styles.radioLabel}>
+              <input
+                type="radio"
+                name="attribution"
+                value="self"
+                checked={attributionType === "self"}
+                onChange={(e) => setAttributionType(e.target.value)}
+                className={styles.radioInput}
+              />
+              <span>👤 A me stesso/a</span>
+            </label>
+
+            <label className={styles.radioLabel}>
+              <input
+                type="radio"
+                name="attribution"
+                value="other"
+                checked={attributionType === "other"}
+                onChange={(e) => setAttributionType(e.target.value)}
+                className={styles.radioInput}
+              />
+              <span>👥 Ad un'altra persona</span>
+            </label>
+
+            <label className={styles.radioLabel}>
+              <input
+                type="radio"
+                name="attribution"
+                value="pseudonym"
+                checked={attributionType === "pseudonym"}
+                onChange={(e) => setAttributionType(e.target.value)}
+                className={styles.radioInput}
+              />
+              <span>🎭 Ad uno pseudonimo</span>
+            </label>
+
+            <label className={styles.radioLabel}>
+              <input
+                type="radio"
+                name="attribution"
+                value="eteronym"
+                checked={attributionType === "eteronym"}
+                onChange={(e) => setAttributionType(e.target.value)}
+                className={styles.radioInput}
+              />
+              <span>✍️ Ad un eteronimo</span>
+            </label>
+
+            <label className={styles.radioLabel}>
+              <input
+                type="radio"
+                name="attribution"
+                value="anonymous"
+                checked={attributionType === "anonymous"}
+                onChange={(e) => setAttributionType(e.target.value)}
+                className={styles.radioInput}
+              />
+              <span>❓ Anonima</span>
+            </label>
+          </div>
+
+          {(attributionType === "other" ||
+            attributionType === "pseudonym" ||
+            attributionType === "eteronym") && (
+            <div className={styles.attributionNameField}>
+              <input
+                type="text"
+                value={attributionName}
+                onChange={(e) => setAttributionName(e.target.value)}
+                placeholder={
+                  attributionType === "other"
+                    ? "Nome della persona"
+                    : attributionType === "pseudonym"
+                    ? "Nome dello pseudonimo"
+                    : "Nome dell'eteronimo"
+                }
+                className={styles.input}
+                required
+              />
+            </div>
+          )}
+
+          {(attributionType === "pseudonym" ||
+            attributionType === "eteronym") &&
+            attributionName && (
+              <div className={styles.revealOption}>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={revealPseudonym}
+                    onChange={(e) => setRevealPseudonym(e.target.checked)}
+                    className={styles.checkboxInput}
+                  />
+                  <span>
+                    🔍 Rivelare che "{attributionName}" è un{" "}
+                    {attributionType === "pseudonym"
+                      ? "pseudonimo"
+                      : "eteronimo"}
+                  </span>
+                </label>
+              </div>
+            )}
+        </div>
+      </div>
+
       {fields.map((field, index) => (
         <div key={index} className={styles.field}>
           <input

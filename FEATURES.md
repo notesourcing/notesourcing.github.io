@@ -57,6 +57,17 @@ This document tracks all implemented features to prevent accidental removal duri
 - **Public Viewing**: All notes are publicly viewable (consistent with home page display)
 - **Edit Permissions**: Only note authors can edit/delete their notes
 
+### ✅ Note Attribution System
+
+- **Self Attribution**: Notes can be attributed to the user themselves (default)
+- **Other Person Attribution**: Notes can be attributed to another person with custom name
+- **Pseudonym Attribution**: Notes can be attributed to a pseudonym with optional reveal option
+- **Eteronym Attribution**: Notes can be attributed to an eteronym (literary alias) with optional reveal option
+- **Anonymous Attribution**: Notes can be made completely anonymous
+- **Reveal Control**: For pseudonyms and eteronyms, users can choose to reveal the nature of the name
+- **Edit Attribution**: Note authors can change attribution details when editing notes
+- **Display Integration**: Attribution is displayed in note cards and detail views
+
 ### ✅ Comments System
 
 - **Add Comments**: Users can comment on any note they have access to

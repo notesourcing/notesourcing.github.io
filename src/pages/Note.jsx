@@ -22,6 +22,11 @@ export default function Note() {
   const [editFields, setEditFields] = useState([]);
   const [error, setError] = useState("");
 
+  // Attribution state for editing
+  const [editAttributionType, setEditAttributionType] = useState("self");
+  const [editAttributionName, setEditAttributionName] = useState("");
+  const [editRevealPseudonym, setEditRevealPseudonym] = useState(false);
+
   useEffect(() => {
     if (!user || !id) return;
 
@@ -47,6 +52,12 @@ export default function Note() {
           setEditFields(
             noteData.fields || [{ name: "text", value: noteData.text || "" }]
           );
+
+          // Initialize attribution editing state
+          const attribution = noteData.attribution || { type: "self" };
+          setEditAttributionType(attribution.type);
+          setEditAttributionName(attribution.name || "");
+          setEditRevealPseudonym(attribution.revealPseudonym || false);
         } else {
           setError("Nota non trovata.");
         }
@@ -72,13 +83,22 @@ export default function Note() {
     setError("");
     try {
       const collectionName = note.type === "shared" ? "sharedNotes" : "notes";
+
+      const attributionData = {
+        type: editAttributionType,
+        name: editAttributionName,
+        revealPseudonym: editRevealPseudonym,
+      };
+
       await updateDoc(doc(db, collectionName, id), {
         fields: editFields,
+        attribution: attributionData,
         lastModified: Timestamp.now(),
       });
       setNote((prev) => ({
         ...prev,
         fields: editFields,
+        attribution: attributionData,
         lastModified: Timestamp.now(),
       }));
       setEditing(false);
@@ -126,6 +146,42 @@ export default function Note() {
     if (note.type === "personal" && note.uid === user.uid) return true;
     if (note.type === "shared" && note.authorId === user.uid) return true;
     return false;
+  };
+
+  const formatAttribution = (note) => {
+    if (!note.attribution) {
+      // Fallback for notes without attribution
+      return (
+        note.authorEmail?.split("@")[0] || note.uid || "Utente sconosciuto"
+      );
+    }
+
+    const { type, name, revealPseudonym } = note.attribution;
+
+    switch (type) {
+      case "self":
+        return (
+          note.authorEmail?.split("@")[0] || note.uid || "Utente sconosciuto"
+        );
+      case "other":
+        return name || "Persona sconosciuta";
+      case "pseudonym":
+        if (revealPseudonym) {
+          return `${name} (pseudonimo)`;
+        }
+        return name || "Pseudonimo";
+      case "eteronym":
+        if (revealPseudonym) {
+          return `${name} (eteronimo)`;
+        }
+        return name || "Eteronimo";
+      case "anonymous":
+        return "Anonimo";
+      default:
+        return (
+          note.authorEmail?.split("@")[0] || note.uid || "Utente sconosciuto"
+        );
+    }
   };
 
   if (loading) {
@@ -196,9 +252,128 @@ export default function Note() {
           <button onClick={addField} className={styles.button}>
             Aggiungi Campo
           </button>
+
+          {/* Attribution editing section */}
+          <div className={styles.attributionSection}>
+            <h3 className={styles.sectionTitle}>Attribuzione della Nota</h3>
+            <div className={styles.attributionOptions}>
+              <div className={styles.radioGroup}>
+                <label className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    name="attribution"
+                    value="self"
+                    checked={editAttributionType === "self"}
+                    onChange={(e) => setEditAttributionType(e.target.value)}
+                    className={styles.radioInput}
+                  />
+                  <span>👤 A me stesso/a</span>
+                </label>
+
+                <label className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    name="attribution"
+                    value="other"
+                    checked={editAttributionType === "other"}
+                    onChange={(e) => setEditAttributionType(e.target.value)}
+                    className={styles.radioInput}
+                  />
+                  <span>👥 Ad un'altra persona</span>
+                </label>
+
+                <label className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    name="attribution"
+                    value="pseudonym"
+                    checked={editAttributionType === "pseudonym"}
+                    onChange={(e) => setEditAttributionType(e.target.value)}
+                    className={styles.radioInput}
+                  />
+                  <span>🎭 Ad uno pseudonimo</span>
+                </label>
+
+                <label className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    name="attribution"
+                    value="eteronym"
+                    checked={editAttributionType === "eteronym"}
+                    onChange={(e) => setEditAttributionType(e.target.value)}
+                    className={styles.radioInput}
+                  />
+                  <span>✍️ Ad un eteronimo</span>
+                </label>
+
+                <label className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    name="attribution"
+                    value="anonymous"
+                    checked={editAttributionType === "anonymous"}
+                    onChange={(e) => setEditAttributionType(e.target.value)}
+                    className={styles.radioInput}
+                  />
+                  <span>❓ Anonima</span>
+                </label>
+              </div>
+
+              {(editAttributionType === "other" ||
+                editAttributionType === "pseudonym" ||
+                editAttributionType === "eteronym") && (
+                <div className={styles.attributionNameField}>
+                  <input
+                    type="text"
+                    value={editAttributionName}
+                    onChange={(e) => setEditAttributionName(e.target.value)}
+                    placeholder={
+                      editAttributionType === "other"
+                        ? "Nome della persona"
+                        : editAttributionType === "pseudonym"
+                        ? "Nome dello pseudonimo"
+                        : "Nome dell'eteronimo"
+                    }
+                    className={styles.input}
+                  />
+                </div>
+              )}
+
+              {(editAttributionType === "pseudonym" ||
+                editAttributionType === "eteronym") &&
+                editAttributionName && (
+                  <div className={styles.revealOption}>
+                    <label className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        checked={editRevealPseudonym}
+                        onChange={(e) =>
+                          setEditRevealPseudonym(e.target.checked)
+                        }
+                        className={styles.checkboxInput}
+                      />
+                      <span>
+                        🔍 Rivelare che "{editAttributionName}" è un{" "}
+                        {editAttributionType === "pseudonym"
+                          ? "pseudonimo"
+                          : "eteronimo"}
+                      </span>
+                    </label>
+                  </div>
+                )}
+            </div>
+          </div>
         </div>
       ) : (
         <div>
+          {/* Attribution display */}
+          <div className={styles.attributionDisplay}>
+            <h3 className={styles.sectionTitle}>Attribuita a:</h3>
+            <p className={styles.attributionText}>
+              👤 {formatAttribution(note)}
+            </p>
+          </div>
+
           {note.fields?.map((field, index) => (
             <div key={index} className={styles.field}>
               <strong className={styles.label}>{field.name}:</strong>

@@ -194,24 +194,32 @@ export default function Home() {
     return () => unsubscribeCommunities();
   }, [user]);
 
-  const handleAddNote = async (fields, selectedCommunityId) => {
+  const handleAddNote = async (
+    fields,
+    selectedCommunityId,
+    attributionData
+  ) => {
     setError("");
     try {
+      const baseNoteData = {
+        fields,
+        created: Timestamp.now(),
+        attribution: attributionData || { type: "self" }, // Default to self attribution
+      };
+
       if (selectedCommunityId) {
         // Create shared note in community
         await addDoc(collection(db, "sharedNotes"), {
+          ...baseNoteData,
           communityId: selectedCommunityId,
           authorId: user.uid,
           authorEmail: user.email,
-          fields,
-          created: Timestamp.now(),
         });
       } else {
         // Create personal note
         await addDoc(collection(db, "notes"), {
+          ...baseNoteData,
           uid: user.uid,
-          fields,
-          created: Timestamp.now(),
         });
       }
       setAddingNote(false);

@@ -34,6 +34,36 @@ export default function NoteCard({
     });
   };
 
+  const formatAttribution = (note) => {
+    if (!note.attribution) {
+      // Fallback to existing user display for notes without attribution
+      return formatUserDisplayName(note);
+    }
+
+    const { type, name, revealPseudonym } = note.attribution;
+
+    switch (type) {
+      case "self":
+        return formatUserDisplayName(note);
+      case "other":
+        return name || "Persona sconosciuta";
+      case "pseudonym":
+        if (revealPseudonym) {
+          return `${name} (pseudonimo)`;
+        }
+        return name || "Pseudonimo";
+      case "eteronym":
+        if (revealPseudonym) {
+          return `${name} (eteronimo)`;
+        }
+        return name || "Eteronimo";
+      case "anonymous":
+        return "Anonimo";
+      default:
+        return formatUserDisplayName(note);
+    }
+  };
+
   return (
     <div className={styles.noteCard}>
       {/* Delete button in bottom right if user can delete */}
@@ -70,9 +100,7 @@ export default function NoteCard({
 
         <div className={styles.noteMetadata}>
           <div className={styles.metadataRow}>
-            <span className={styles.author}>
-              👤 {formatUserDisplayName(note)}
-            </span>
+            <span className={styles.author}>👤 {formatAttribution(note)}</span>
             <span className={styles.noteType}>
               {note.type === "personal" ? "📝 Personale" : "🌐 Condivisa"}
             </span>

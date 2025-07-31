@@ -75,6 +75,19 @@ const CRITICAL_FEATURES = [
     pattern: /filterType|filter.*notes/i,
     description: "Home must provide note filtering capabilities",
   },
+  {
+    name: "Note attribution system",
+    file: "src/components/NewNoteForm.jsx",
+    pattern: /attribution.*Type|pseudonym|eteronym|anonymous/i,
+    description:
+      "NewNoteForm must support note attribution (self, other, pseudonym, eteronym, anonymous)",
+  },
+  {
+    name: "Attribution display in NoteCard",
+    file: "src/components/NoteCard.jsx",
+    pattern: /formatAttribution|attribution/i,
+    description: "NoteCard must display attribution information",
+  },
 ];
 
 let allPassed = true;

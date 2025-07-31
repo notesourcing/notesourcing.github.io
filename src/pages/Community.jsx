@@ -276,7 +276,11 @@ export default function Community() {
     };
   }, [community, id]);
 
-  const handleAddSharedNote = async (fields, selectedCommunityId) => {
+  const handleAddSharedNote = async (
+    fields,
+    selectedCommunityId,
+    attributionData
+  ) => {
     if (!user) return;
     setError("");
     try {
@@ -286,6 +290,7 @@ export default function Community() {
         authorEmail: user.email,
         fields,
         created: Timestamp.now(),
+        attribution: attributionData || { type: "self" }, // Default to self attribution
       });
       setAddingNote(false);
     } catch (err) {
