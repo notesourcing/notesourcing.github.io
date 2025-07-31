@@ -12,9 +12,51 @@
   margin-bottom: 2rem;
 }
 
+.titleSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
 .title {
   font-size: 2rem;
   color: #333;
+  margin: 0;
+}
+
+.visibilityBadge {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.publicBadge {
+  background: linear-gradient(45deg, #28a745, #20c997);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.privateBadge {
+  background: linear-gradient(45deg, #ffc107, #fd7e14);
+  color: #333;
+  padding: 0.4rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.hiddenBadge {
+  background: linear-gradient(45deg, #6c757d, #495057);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .description {
@@ -143,6 +185,17 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
+}
+
+.emptyNotes {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #666;
+  font-size: 1.1rem;
+  font-style: italic;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-top: 2rem;
 }
 
 .noteCard {

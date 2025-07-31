@@ -25,7 +25,7 @@ import styles from "./App.module.css";
 export const AuthContext = createContext(null);
 
 function Layout() {
-  const { user, isSuperAdmin } = useContext(AuthContext);
+  const { user, isSuperAdmin, userDisplayName } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -36,6 +36,17 @@ function Layout() {
     } catch (error) {
       console.error("Error signing out:", error);
     }
+  };
+
+  // Function to get display name for profile link
+  const getProfileDisplayName = () => {
+    if (userDisplayName) {
+      return userDisplayName;
+    }
+    if (user?.email) {
+      return user.email.split("@")[0];
+    }
+    return user?.email || "Profile";
   };
 
   return (
@@ -102,9 +113,8 @@ function Layout() {
                 }
                 title="Il mio profilo"
               >
-                👤 Profilo
+                👤 {getProfileDisplayName()}
               </Link>
-              <span className={styles.userEmail}>{user.email}</span>
               <button onClick={handleLogout} className={styles.logoutButton}>
                 Logout
               </button>
@@ -144,6 +154,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [userDisplayName, setUserDisplayName] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -157,6 +168,9 @@ function App() {
             userData.role === "admin" || userData.role === "superadmin"
           );
           setIsSuperAdmin(userData.role === "superadmin");
+          setUserDisplayName(userData.displayName || null);
+        } else {
+          setUserDisplayName(null);
         }
         setUser(u);
 
@@ -169,6 +183,7 @@ function App() {
         setUser(null);
         setIsAdmin(false);
         setIsSuperAdmin(false);
+        setUserDisplayName(null);
 
         // Clear from feature monitor
         if (import.meta.env.DEV) {
@@ -190,7 +205,9 @@ function App() {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, isSuperAdmin }}>
+    <AuthContext.Provider
+      value={{ user, isAdmin, isSuperAdmin, userDisplayName }}
+    >
       <Router>
         <Layout />
       </Router>

@@ -91,18 +91,27 @@ export default function Community() {
           const joinRequestsSnapshot = await getDocs(joinRequestsQuery);
           setHasRequestedJoin(!joinRequestsSnapshot.empty);
         }
+
+        setLoading(false);
       } catch (err) {
         console.error("Error fetching community:", err);
         setError("Errore nel caricamento della community.");
-      } finally {
         setLoading(false);
       }
     };
 
     fetchCommunityData();
+  }, [id, user]);
 
-    // Only fetch notes if user is a member
-    if (isMember) {
+  // Separate useEffect for fetching notes - runs after community data is loaded
+  useEffect(() => {
+    if (!community || !user) return;
+
+    // Fetch notes based on community visibility and user membership
+    const shouldFetchNotes =
+      isMember || community.visibility === "public" || !community.visibility; // Default to public for existing communities
+
+    if (shouldFetchNotes) {
       const notesQuery = query(
         collection(db, "sharedNotes"),
         where("communityId", "==", id),
@@ -131,8 +140,11 @@ export default function Community() {
       );
 
       return () => unsubscribe();
+    } else {
+      // Clear notes for private/hidden communities when user is not a member
+      setSharedNotes([]);
     }
-  }, [id, user, isMember]);
+  }, [community, isMember, user, id]);
 
   // Calculate community statistics with real-time updates
   useEffect(() => {
@@ -410,7 +422,23 @@ export default function Community() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1 className={styles.title}>{community.name}</h1>
+        <div className={styles.titleSection}>
+          <h1 className={styles.title}>{community.name}</h1>
+          <div className={styles.visibilityBadge}>
+            {community.visibility === "public" && (
+              <span className={styles.publicBadge}>🌍 Pubblica</span>
+            )}
+            {community.visibility === "private" && (
+              <span className={styles.privateBadge}>🔒 Privata</span>
+            )}
+            {community.visibility === "hidden" && (
+              <span className={styles.hiddenBadge}>👁️‍🗨️ Nascosta</span>
+            )}
+            {!community.visibility && (
+              <span className={styles.publicBadge}>🌍 Pubblica</span>
+            )}
+          </div>
+        </div>
         {/* Leave Community Button - only for non-creator members */}
         {isMember && !isCreator && (
           <button
@@ -477,10 +505,18 @@ export default function Community() {
         </div>
       </div>
 
-      {!isMember ? (
+      {!isMember && (
         <div className={styles.joinRequest}>
           <p className={styles.notMemberMessage}>
             Non sei membro di questa community.
+            {community.visibility === "public" &&
+              " Puoi vedere le note ma devi unirti per contribuire."}
+            {community.visibility === "private" &&
+              " Richiedi l'adesione per vedere e contribuire alle note."}
+            {community.visibility === "hidden" &&
+              " Questa è una community nascosta - richiedi l'adesione per accedere."}
+            {!community.visibility &&
+              " Puoi vedere le note ma devi unirti per contribuire."}
           </p>
           {hasRequestedJoin ? (
             <p className={styles.pendingMessage}>
@@ -496,7 +532,10 @@ export default function Community() {
             </button>
           )}
         </div>
-      ) : (
+      )}
+
+      {/* Note creation form - only for members */}
+      {isMember && (
         <>
           <div className={styles.noteForm}>
             {addingNote && (
@@ -525,9 +564,22 @@ export default function Community() {
               }}
             />
           )}
+        </>
+      )}
 
-          <div className={styles.notesGrid}>
-            {sharedNotes.map((note) => (
+      {/* Notes display - show for members OR for public communities */}
+      {(isMember ||
+        community.visibility === "public" ||
+        !community.visibility) && (
+        <div className={styles.notesGrid}>
+          {sharedNotes.length === 0 ? (
+            <p className={styles.emptyNotes}>
+              {isMember
+                ? "Nessuna nota ancora. Sii il primo a condividerne una!"
+                : "Non ci sono ancora note in questa community."}
+            </p>
+          ) : (
+            sharedNotes.map((note) => (
               <NoteCard
                 key={note.id}
                 note={{ ...note, type: "shared" }}
@@ -538,9 +590,9 @@ export default function Community() {
                 availableReactions={availableReactions}
                 commentCount={commentCounts[note.id] || 0}
               />
-            ))}
-          </div>
-        </>
+            ))
+          )}
+        </div>
       )}
     </div>
   );
