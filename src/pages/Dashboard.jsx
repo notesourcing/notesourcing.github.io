@@ -213,44 +213,64 @@ export default function Dashboard() {
           <ul className={styles.notesList}>
             {allUserNotes.map((note) => (
               <li key={note.id} className={styles.noteItem}>
-                <div className={styles.noteInfo}>
-                  <Link to={`/note/${note.id}`} className={styles.noteLink}>
-                    {note.fields && note.fields.length > 0
-                      ? note.fields[0].value
-                      : note.text || "Nota senza titolo"}
-                  </Link>
-                  <div className={styles.noteMeta}>
-                    <span
-                      className={`${styles.noteType} ${
-                        note.type === "personal"
-                          ? styles.personal
-                          : styles.shared
-                      }`}
-                    >
-                      {note.type === "personal" ? "Personale" : "Condivisa"}
-                    </span>
-                    {note.type === "shared" && note.communityName && (
-                      <span className={styles.communityName}>
-                        in {note.communityName}
-                      </span>
-                    )}
-                    <span className={styles.noteDate}>
-                      {note.created?.toDate
-                        ? note.created.toDate().toLocaleDateString()
-                        : "N/A"}
-                    </span>
-                  </div>
-                </div>
-                <div className={styles.noteActions}>
-                  <Link to={`/note/${note.id}`} className={styles.actionButton}>
-                    Modifica
-                  </Link>
+                <div className={styles.noteCard}>
                   <button
-                    onClick={() => handleDeleteNote(note.id, note.type)}
-                    className={`${styles.actionButton} ${styles.deleteButton}`}
+                    className={styles.deleteButtonFloating}
+                    title="Elimina nota"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteNote(note.id, note.type);
+                    }}
                   >
                     Elimina
                   </button>
+                  <div
+                    className={styles.noteCardClickable}
+                    onClick={() => (window.location.hash = `#/note/${note.id}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter")
+                        window.location.hash = `#/note/${note.id}`;
+                    }}
+                  >
+                    <div className={styles.noteContent}>
+                      {note.fields && note.fields.length > 0 ? (
+                        <>
+                          {note.fields.map((field, idx) => (
+                            <div key={idx} className={styles.noteField}>
+                              <strong>{field.name}:</strong> {field.value}
+                            </div>
+                          ))}
+                        </>
+                      ) : (
+                        <div className={styles.noteText}>
+                          {note.text || "Nota senza titolo"}
+                        </div>
+                      )}
+                    </div>
+                    <div className={styles.noteMeta}>
+                      <span
+                        className={`${styles.noteType} ${
+                          note.type === "personal"
+                            ? styles.personal
+                            : styles.shared
+                        }`}
+                      >
+                        {note.type === "personal" ? "Personale" : "Condivisa"}
+                      </span>
+                      {note.type === "shared" && note.communityName && (
+                        <span className={styles.communityName}>
+                          in {note.communityName}
+                        </span>
+                      )}
+                      <span className={styles.noteDate}>
+                        {note.created?.toDate
+                          ? note.created.toDate().toLocaleDateString()
+                          : "N/A"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </li>
             ))}

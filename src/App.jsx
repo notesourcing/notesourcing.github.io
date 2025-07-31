@@ -75,7 +75,7 @@ function Layout() {
                 : styles.navLink
             }
           >
-            👥 Community
+            👥 Communities
           </Link>
           {isSuperAdmin && (
             <Link
