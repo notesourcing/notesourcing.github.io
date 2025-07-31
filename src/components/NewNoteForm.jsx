@@ -15,7 +15,7 @@ export default function NewNoteForm({
       ? initialFields
       : [
           { name: "Title", value: "" },
-          { name: "URL", value: "" },
+          { name: "Description", value: "" },
         ]
   );
 

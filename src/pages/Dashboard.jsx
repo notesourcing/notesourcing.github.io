@@ -272,7 +272,7 @@ export default function Dashboard() {
                       handleDeleteNote(note.id, note.type);
                     }}
                   >
-                    Elimina
+                    🗑️
                   </button>
                   <div
                     className={styles.noteCardClickable}
