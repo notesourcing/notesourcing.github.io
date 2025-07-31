@@ -43,6 +43,13 @@ export default function Community() {
   const [hasRequestedJoin, setHasRequestedJoin] = useState(false);
   const [requestingJoin, setRequestingJoin] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
+  const [communityStats, setCommunityStats] = useState({
+    memberCount: 0,
+    noteCount: 0,
+    totalComments: 0,
+    totalReactions: 0,
+    lastActivity: null,
+  });
   const availableReactions = ["👍", "❤️", "😂", "😮", "😢", "😠"];
 
   // Get comment counts for shared notes
@@ -118,6 +125,109 @@ export default function Community() {
       return () => unsubscribe();
     }
   }, [id, user, isMember]);
+
+  // Calculate community statistics
+  useEffect(() => {
+    if (!community) return;
+
+    const calculateStats = async () => {
+      const memberCount = community.members ? community.members.length : 0;
+
+      // Get ALL notes for this community (not just the ones currently loaded)
+      const allNotesQuery = query(
+        collection(db, "sharedNotes"),
+        where("communityId", "==", id)
+      );
+
+      try {
+        const allNotesSnapshot = await getDocs(allNotesQuery);
+        const allNotes = allNotesSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        const noteCount = allNotes.length;
+
+        // Calculate total comments for ALL notes in the community
+        let totalComments = 0;
+        if (allNotes.length > 0) {
+          const noteIds = allNotes.map((note) => note.id);
+
+          // Handle Firestore's "in" query limit of 10 items by batching
+          const batchSize = 10;
+          const batches = [];
+          for (let i = 0; i < noteIds.length; i += batchSize) {
+            const batch = noteIds.slice(i, i + batchSize);
+            batches.push(batch);
+          }
+
+          // Execute all batches and sum the results
+          for (const batch of batches) {
+            const commentsQuery = query(
+              collection(db, "comments"),
+              where("noteId", "in", batch)
+            );
+            const commentsSnapshot = await getDocs(commentsQuery);
+            totalComments += commentsSnapshot.docs.length;
+          }
+        }
+
+        // Calculate total reactions for ALL notes
+        const totalReactions = allNotes.reduce((sum, note) => {
+          if (!note.reactions) return sum;
+          return (
+            sum +
+            Object.values(note.reactions).reduce(
+              (reactionSum, userArray) =>
+                reactionSum + (Array.isArray(userArray) ? userArray.length : 0),
+              0
+            )
+          );
+        }, 0);
+
+        // Find last activity (most recent note or community creation)
+        let lastActivity = community.created?.toDate
+          ? community.created.toDate()
+          : null;
+        if (allNotes.length > 0) {
+          // Sort all notes by creation date to find the most recent
+          const sortedNotes = allNotes.sort((a, b) => {
+            const dateA = a.created?.toDate ? a.created.toDate() : new Date(0);
+            const dateB = b.created?.toDate ? b.created.toDate() : new Date(0);
+            return dateB - dateA;
+          });
+          const lastNoteDate = sortedNotes[0]?.created?.toDate
+            ? sortedNotes[0].created.toDate()
+            : null;
+          if (lastNoteDate && (!lastActivity || lastNoteDate > lastActivity)) {
+            lastActivity = lastNoteDate;
+          }
+        }
+
+        setCommunityStats({
+          memberCount,
+          noteCount,
+          totalComments,
+          totalReactions,
+          lastActivity,
+        });
+      } catch (err) {
+        console.error("Error calculating community stats:", err);
+        // Fallback to basic stats if detailed calculation fails
+        setCommunityStats({
+          memberCount,
+          noteCount: sharedNotes.length,
+          totalComments: 0,
+          totalReactions: 0,
+          lastActivity: community.created?.toDate
+            ? community.created.toDate()
+            : null,
+        });
+      }
+    };
+
+    calculateStats();
+  }, [community, id]); // Removed sharedNotes and commentCounts dependencies
 
   const handleAddSharedNote = async (fields, selectedCommunityId) => {
     if (!user) return;
@@ -216,9 +326,6 @@ export default function Community() {
     return (
       <div className={styles.container}>
         <p className={styles.error}>{error}</p>
-        <Link to="/dashboard" className={styles.backLink}>
-          ← Torna al Dashboard
-        </Link>
       </div>
     );
   }
@@ -227,9 +334,6 @@ export default function Community() {
     return (
       <div className={styles.container}>
         <p>Community non trovata.</p>
-        <Link to="/dashboard" className={styles.backLink}>
-          ← Torna al Dashboard
-        </Link>
       </div>
     );
   }
@@ -238,9 +342,60 @@ export default function Community() {
     <div className={styles.container}>
       <div className={styles.header}>
         <h1 className={styles.title}>{community.name}</h1>
-        <Link to="/dashboard" className={styles.backLink}>
-          ← Torna al Dashboard
-        </Link>
+      </div>
+
+      {/* Community Description */}
+      {community.description && (
+        <div className={styles.description}>
+          <p>{community.description}</p>
+        </div>
+      )}
+
+      {/* Community Statistics */}
+      <div className={styles.statsSection}>
+        <h3 className={styles.statsTitle}>Statistiche della Community</h3>
+        <div className={styles.statsGrid}>
+          <div className={styles.statCard}>
+            <span className={styles.statNumber}>
+              {communityStats.memberCount}
+            </span>
+            <span className={styles.statLabel}>Membri</span>
+          </div>
+          <div className={styles.statCard}>
+            <span className={styles.statNumber}>
+              {communityStats.noteCount}
+            </span>
+            <span className={styles.statLabel}>Note</span>
+          </div>
+          <div className={styles.statCard}>
+            <span className={styles.statNumber}>
+              {communityStats.totalComments}
+            </span>
+            <span className={styles.statLabel}>Commenti</span>
+          </div>
+          <div className={styles.statCard}>
+            <span className={styles.statNumber}>
+              {communityStats.totalReactions}
+            </span>
+            <span className={styles.statLabel}>Reazioni</span>
+          </div>
+          <div className={styles.statCard}>
+            <span className={styles.statLabel}>Creata il</span>
+            <span className={styles.statDate}>
+              {community.created?.toDate
+                ? community.created.toDate().toLocaleDateString("it-IT")
+                : "N/A"}
+            </span>
+          </div>
+          <div className={styles.statCard}>
+            <span className={styles.statLabel}>Ultima Attività</span>
+            <span className={styles.statDate}>
+              {communityStats.lastActivity
+                ? communityStats.lastActivity.toLocaleDateString("it-IT")
+                : "N/A"}
+            </span>
+          </div>
+        </div>
       </div>
 
       {!isMember ? (
