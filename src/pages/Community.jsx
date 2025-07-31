@@ -22,9 +22,11 @@ import {
   deleteDoc,
   arrayUnion,
   arrayRemove,
+  serverTimestamp,
 } from "firebase/firestore";
 import NewNoteForm from "../components/NewNoteForm";
 import NoteCard from "../components/NoteCard";
+import JoinRequestManager from "../components/JoinRequestManager";
 import { useCommentCounts } from "../hooks/useCommentCounts";
 import styles from "./Community.module.css";
 
@@ -37,6 +39,10 @@ export default function Community() {
   const [loading, setLoading] = useState(true);
   const [addingNote, setAddingNote] = useState(false);
   const [error, setError] = useState("");
+  const [isMember, setIsMember] = useState(false);
+  const [hasRequestedJoin, setHasRequestedJoin] = useState(false);
+  const [requestingJoin, setRequestingJoin] = useState(false);
+  const [isCreator, setIsCreator] = useState(false);
   const availableReactions = ["👍", "❤️", "😂", "😮", "😢", "😠"];
 
   // Get comment counts for shared notes
@@ -56,16 +62,26 @@ export default function Community() {
         }
 
         const communityData = { id: communityDoc.id, ...communityDoc.data() };
-        if (
-          !communityData.members ||
-          !communityData.members.includes(user.uid)
-        ) {
-          setError("Non hai accesso a questa community.");
-          setLoading(false);
-          return;
-        }
-
         setCommunity(communityData);
+
+        // Check if user is a member
+        const isUserMember =
+          communityData.members && communityData.members.includes(user.uid);
+        setIsMember(isUserMember);
+
+        // Check if user is the creator
+        setIsCreator(communityData.creatorId === user.uid);
+
+        // If not a member, check if user has already requested to join
+        if (!isUserMember) {
+          const joinRequestsQuery = query(
+            collection(db, "joinRequests"),
+            where("userId", "==", user.uid),
+            where("communityId", "==", id)
+          );
+          const joinRequestsSnapshot = await getDocs(joinRequestsQuery);
+          setHasRequestedJoin(!joinRequestsSnapshot.empty);
+        }
       } catch (err) {
         console.error("Error fetching community:", err);
         setError("Errore nel caricamento della community.");
@@ -76,29 +92,32 @@ export default function Community() {
 
     fetchCommunityData();
 
-    const notesQuery = query(
-      collection(db, "sharedNotes"),
-      where("communityId", "==", id),
-      orderBy("created", "desc")
-    );
+    // Only fetch notes if user is a member
+    if (isMember) {
+      const notesQuery = query(
+        collection(db, "sharedNotes"),
+        where("communityId", "==", id),
+        orderBy("created", "desc")
+      );
 
-    const unsubscribe = onSnapshot(
-      notesQuery,
-      (snapshot) => {
-        const notes = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setSharedNotes(notes);
-      },
-      (err) => {
-        console.error("Error fetching shared notes:", err);
-        setError("Errore nel caricamento delle note condivise.");
-      }
-    );
+      const unsubscribe = onSnapshot(
+        notesQuery,
+        (snapshot) => {
+          const notes = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setSharedNotes(notes);
+        },
+        (err) => {
+          console.error("Error fetching shared notes:", err);
+          setError("Errore nel caricamento delle note condivise.");
+        }
+      );
 
-    return () => unsubscribe();
-  }, [id, user]);
+      return () => unsubscribe();
+    }
+  }, [id, user, isMember]);
 
   const handleAddSharedNote = async (fields, selectedCommunityId) => {
     if (!user) return;
@@ -124,6 +143,30 @@ export default function Community() {
     } catch (err) {
       console.error("Error deleting shared note:", err);
       setError("Errore durante l'eliminazione della nota.");
+    }
+  };
+
+  const handleJoinRequest = async () => {
+    if (!user || hasRequestedJoin || requestingJoin) return;
+
+    setRequestingJoin(true);
+    setError("");
+
+    try {
+      await addDoc(collection(db, "joinRequests"), {
+        communityId: id,
+        userId: user.uid,
+        userEmail: user.email,
+        status: "pending",
+        created: serverTimestamp(),
+      });
+
+      setHasRequestedJoin(true);
+    } catch (err) {
+      console.error("Error submitting join request:", err);
+      setError("Errore durante l'invio della richiesta di adesione.");
+    } finally {
+      setRequestingJoin(false);
     }
   };
 
@@ -200,37 +243,71 @@ export default function Community() {
         </Link>
       </div>
 
-      <div className={styles.noteForm}>
-        {addingNote && (
-          <NewNoteForm
-            onSubmit={handleAddSharedNote}
-            onCancel={() => setAddingNote(false)}
-          />
-        )}
-        {!addingNote && (
-          <button
-            className={styles.addButton}
-            onClick={() => setAddingNote(true)}
-          >
-            Aggiungi Nota
-          </button>
-        )}
-      </div>
+      {!isMember ? (
+        <div className={styles.joinRequest}>
+          <p className={styles.notMemberMessage}>
+            Non sei membro di questa community.
+          </p>
+          {hasRequestedJoin ? (
+            <p className={styles.pendingMessage}>
+              La tua richiesta di adesione è in attesa di approvazione.
+            </p>
+          ) : (
+            <button
+              className={styles.joinButton}
+              onClick={handleJoinRequest}
+              disabled={requestingJoin}
+            >
+              {requestingJoin ? "Invio richiesta..." : "Richiedi di aderire"}
+            </button>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className={styles.noteForm}>
+            {addingNote && (
+              <NewNoteForm
+                onSubmit={handleAddSharedNote}
+                onCancel={() => setAddingNote(false)}
+              />
+            )}
+            {!addingNote && (
+              <button
+                className={styles.addButton}
+                onClick={() => setAddingNote(true)}
+              >
+                Aggiungi Nota
+              </button>
+            )}
+          </div>
 
-      <div className={styles.notesGrid}>
-        {sharedNotes.map((note) => (
-          <NoteCard
-            key={note.id}
-            note={{ ...note, type: "shared" }}
-            user={user}
-            isAdmin={isAdmin}
-            onReaction={handleReaction}
-            onDelete={handleDeleteSharedNote}
-            availableReactions={availableReactions}
-            commentCount={commentCounts[note.id] || 0}
-          />
-        ))}
-      </div>
+          {isCreator && (
+            <JoinRequestManager
+              communityId={id}
+              user={user}
+              onRequestHandled={() => {
+                // Optionally refresh community data when a request is handled
+                // This would update member counts, etc.
+              }}
+            />
+          )}
+
+          <div className={styles.notesGrid}>
+            {sharedNotes.map((note) => (
+              <NoteCard
+                key={note.id}
+                note={{ ...note, type: "shared" }}
+                user={user}
+                isAdmin={isAdmin}
+                onReaction={handleReaction}
+                onDelete={handleDeleteSharedNote}
+                availableReactions={availableReactions}
+                commentCount={commentCounts[note.id] || 0}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
