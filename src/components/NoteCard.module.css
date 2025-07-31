@@ -1,0 +1,196 @@
+.noteCard {
+  position: relative;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.noteCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.noteLink {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.deleteButton {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.deleteButton:hover {
+  background: rgba(220, 53, 69, 0.1);
+  color: #a71d2a;
+}
+
+.noteContent {
+  margin-bottom: 1rem;
+}
+
+.field {
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.fieldName {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.fieldValue {
+  color: #555;
+  line-height: 1.4;
+}
+
+.noteText {
+  color: #555;
+  line-height: 1.4;
+}
+
+.noteMetadata {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.metadataRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.author,
+.date,
+.lastModified,
+.noteType,
+.commentCount {
+  font-size: 0.85rem;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.commentCount {
+  color: #007bff;
+}
+
+.noteType {
+  font-weight: 500;
+}
+
+.lastModified {
+  font-style: italic;
+  font-size: 0.8rem;
+}
+
+.communityLink {
+  color: #007bff;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.communityLink:hover {
+  background: #e7f3ff;
+  text-decoration: none;
+}
+
+.reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+.reactionButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #dee2e6;
+  border-radius: 20px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.reactionButton:hover:not(:disabled) {
+  border-color: #007bff;
+  background: #f0f8ff;
+}
+
+.reactionButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.reactionButton.reacted {
+  background: #e7f3ff;
+  border-color: #007bff;
+  color: #007bff;
+}
+
+.emoji {
+  font-size: 1.1rem;
+}
+
+.count {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .noteCard {
+    padding: 1rem;
+  }
+
+  .metadataRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .reactions {
+    gap: 0.25rem;
+  }
+
+  .reactionButton {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.85rem;
+  }
+
+  .emoji {
+    font-size: 1rem;
+  }
+}
