@@ -20,6 +20,7 @@ import {
   arrayRemove,
 } from "firebase/firestore";
 import NoteCard from "../components/NoteCard";
+import { useCommentCounts } from "../hooks/useCommentCounts";
 import styles from "./Home.module.css";
 
 export default function Home() {
@@ -30,6 +31,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const availableReactions = ["👍", "❤️", "😂", "😮", "😢", "😠"];
+
+  // Get comment counts for all notes
+  const commentCounts = useCommentCounts(allNotes);
 
   // Combine notes whenever personal or shared notes change
   useEffect(() => {
@@ -316,6 +320,7 @@ export default function Home() {
                 onDelete={handleDeleteNote}
                 availableReactions={availableReactions}
                 showDeleteButton={isSuperAdmin}
+                commentCount={commentCounts[note.id] || 0}
               />
             </li>
           ))}

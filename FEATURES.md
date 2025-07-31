@@ -48,6 +48,19 @@ This document tracks all implemented features to prevent accidental removal duri
 - **Dashboard**: User's personal and shared notes list
 - **Home Page**: Public feed of all notes (personal + shared)
 - **All Notes Page**: SuperAdmin view of all notes in system
+- **Note Detail Page**: Individual note view/edit interface with read-only mode for non-authors
+- **Community Pages**: Community-specific note feeds
+- **Public Viewing**: All notes are publicly viewable (consistent with home page display)
+- **Edit Permissions**: Only note authors can edit/delete their notes
+
+### ✅ Comments System
+
+- **Add Comments**: Users can comment on any note they have access to
+- **View Comments**: Threaded display of comments on note detail pages
+- **Delete Comments**: Comment authors can delete their own comments
+- **Real-time Updates**: Comments appear instantly via onSnapshot listeners
+- **User Attribution**: Comments show author name and timestamp
+- **Permissions**: Only logged-in users can add comments
 - **Note Detail Page**: Individual note view/edit interface
 - **Community Pages**: Community-specific note feeds
 
@@ -126,9 +139,9 @@ This document tracks all implemented features to prevent accidental removal duri
 
 ### ✅ Database Structure
 
-- **Collections**: `notes`, `sharedNotes`, `communities`, `users`
-- **Relationships**: Notes linked to users and communities
-- **Metadata**: Creation dates, author information, community names
+- **Collections**: `notes`, `sharedNotes`, `communities`, `users`, `comments`
+- **Relationships**: Notes linked to users and communities, comments linked to notes
+- **Metadata**: Creation dates, author information, community names, comment timestamps
 - **Query Optimization**: Efficient queries with proper indexing
 
 ### ✅ Data Validation
@@ -171,6 +184,8 @@ This document tracks all implemented features to prevent accidental removal duri
 ### ✅ Reusable Components
 
 - **NewNoteForm**: Dynamic form for creating notes
+- **NoteCard**: Unified note display component across all pages
+- **Comments**: Threaded comment system for notes
 - **Layout**: Global app layout with navigation
 - **Error Boundaries**: Graceful error handling
 
@@ -237,8 +252,8 @@ This document tracks all implemented features to prevent accidental removal duri
 
 ## 🏁 Last Updated
 
-**Date**: July 30, 2025  
-**Status**: All features confirmed working with real-time updates implemented  
+**Date**: July 30, 2025
+**Status**: All features confirmed working with real-time updates implemented
 **Next Review**: Before any major refactoring or feature additions
 
 ---

@@ -27,6 +27,7 @@ import {
 } from "firebase/firestore";
 import NewNoteForm from "../components/NewNoteForm";
 import NoteCard from "../components/NoteCard";
+import { useCommentCounts } from "../hooks/useCommentCounts";
 import styles from "./Dashboard.module.css";
 
 export default function Dashboard() {
@@ -39,6 +40,9 @@ export default function Dashboard() {
   const [addingNote, setAddingNote] = useState(false);
   const [error, setError] = useState("");
   const availableReactions = ["👍", "❤️", "😂", "😮", "😢", "😠"];
+
+  // Get comment counts for all user notes
+  const commentCounts = useCommentCounts(allUserNotes);
 
   useEffect(() => {
     if (!user || !user.uid) {
@@ -314,6 +318,7 @@ export default function Dashboard() {
                   onReaction={handleReaction}
                   onDelete={handleDeleteNote}
                   availableReactions={availableReactions}
+                  commentCount={commentCounts[note.id] || 0}
                 />
               </li>
             ))}

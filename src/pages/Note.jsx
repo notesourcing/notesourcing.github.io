@@ -9,6 +9,7 @@ import {
   Timestamp,
   deleteDoc,
 } from "firebase/firestore";
+import Comments from "../components/Comments";
 import styles from "./Note.module.css";
 
 export default function Note() {
@@ -40,18 +41,12 @@ export default function Note() {
           }
         }
         if (noteData) {
-          // Permission: personal note must be owned, shared note must be authored
-          if (
-            (noteData.type === "personal" && noteData.uid !== user.uid) ||
-            (noteData.type === "shared" && noteData.authorId !== user.uid)
-          ) {
-            setError("Non hai il permesso di visualizzare questa nota.");
-          } else {
-            setNote(noteData);
-            setEditFields(
-              noteData.fields || [{ name: "text", value: noteData.text || "" }]
-            );
-          }
+          // Notes are publicly viewable (as seen in Home page)
+          // Only editing should be restricted to authors
+          setNote(noteData);
+          setEditFields(
+            noteData.fields || [{ name: "text", value: noteData.text || "" }]
+          );
         } else {
           setError("Nota non trovata.");
         }
@@ -66,6 +61,10 @@ export default function Note() {
   }, [user, id]);
 
   const handleSave = async () => {
+    if (!canEditNote()) {
+      setError("Non hai il permesso di modificare questa nota.");
+      return;
+    }
     if (editFields.every((field) => !field.value.trim())) {
       setError("Inserisci almeno un valore in uno dei campi.");
       return;
@@ -90,6 +89,10 @@ export default function Note() {
   };
 
   const handleDelete = async () => {
+    if (!canEditNote()) {
+      setError("Non hai il permesso di eliminare questa nota.");
+      return;
+    }
     if (window.confirm("Sei sicuro di voler eliminare questa nota?")) {
       try {
         const collectionName = note.type === "shared" ? "sharedNotes" : "notes";
@@ -115,6 +118,14 @@ export default function Note() {
   const removeField = (index) => {
     const updatedFields = editFields.filter((_, i) => i !== index);
     setEditFields(updatedFields);
+  };
+
+  // Check if current user can edit/delete this note
+  const canEditNote = () => {
+    if (!user || !note) return false;
+    if (note.type === "personal" && note.uid === user.uid) return true;
+    if (note.type === "shared" && note.authorId === user.uid) return true;
+    return false;
   };
 
   if (loading) {
@@ -146,6 +157,12 @@ export default function Note() {
           ← Torna al Dashboard
         </Link>
       </div>
+
+      {!canEditNote() && (
+        <div className={styles.readOnlyNotice}>
+          👁️ Stai visualizzando questa nota in modalità sola lettura
+        </div>
+      )}
 
       {editing ? (
         <div className={styles.form}>
@@ -192,37 +209,46 @@ export default function Note() {
       )}
 
       <div className={styles.buttonContainer}>
-        {editing ? (
+        {canEditNote() && (
           <>
+            {editing ? (
+              <>
+                <button
+                  onClick={handleSave}
+                  className={`${styles.button} ${styles.saveButton}`}
+                >
+                  Salva
+                </button>
+                <button
+                  onClick={() => setEditing(false)}
+                  className={`${styles.button} ${styles.cancelButton}`}
+                >
+                  Annulla
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setEditing(true)}
+                className={`${styles.button} ${styles.saveButton}`}
+              >
+                Modifica
+              </button>
+            )}
             <button
-              onClick={handleSave}
-              className={`${styles.button} ${styles.saveButton}`}
+              onClick={handleDelete}
+              className={`${styles.button} ${styles.deleteButton}`}
             >
-              Salva
-            </button>
-            <button
-              onClick={() => setEditing(false)}
-              className={`${styles.button} ${styles.cancelButton}`}
-            >
-              Annulla
+              Elimina
             </button>
           </>
-        ) : (
-          <button
-            onClick={() => setEditing(true)}
-            className={`${styles.button} ${styles.saveButton}`}
-          >
-            Modifica
-          </button>
         )}
-        <button
-          onClick={handleDelete}
-          className={`${styles.button} ${styles.deleteButton}`}
-        >
-          Elimina
-        </button>
       </div>
       {error && <p className={styles.error}>{error}</p>}
+
+      {/* Comments Section */}
+      {note && note.id && note.type && (
+        <Comments noteId={note.id} noteType={note.type} />
+      )}
     </div>
   );
 }

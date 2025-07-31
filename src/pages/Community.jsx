@@ -25,6 +25,7 @@ import {
 } from "firebase/firestore";
 import NewNoteForm from "../components/NewNoteForm";
 import NoteCard from "../components/NoteCard";
+import { useCommentCounts } from "../hooks/useCommentCounts";
 import styles from "./Community.module.css";
 
 export default function Community() {
@@ -37,6 +38,9 @@ export default function Community() {
   const [addingNote, setAddingNote] = useState(false);
   const [error, setError] = useState("");
   const availableReactions = ["👍", "❤️", "😂", "😮", "😢", "😠"];
+
+  // Get comment counts for shared notes
+  const commentCounts = useCommentCounts(sharedNotes);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -222,6 +226,7 @@ export default function Community() {
             onReaction={handleReaction}
             onDelete={handleDeleteSharedNote}
             availableReactions={availableReactions}
+            commentCount={commentCounts[note.id] || 0}
           />
         ))}
       </div>

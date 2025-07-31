@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { AuthContext } from "../App";
 import NoteCard from "../components/NoteCard";
+import { useCommentCounts } from "../hooks/useCommentCounts";
 
 export default function AllNotes() {
   const { user, isSuperAdmin } = useContext(AuthContext);
@@ -23,6 +24,9 @@ export default function AllNotes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const availableReactions = ["👍", "❤️", "😂", "😮", "😢", "😠"];
+
+  // Get comment counts for all notes
+  const commentCounts = useCommentCounts(allNotes);
 
   // Combine notes whenever personal or shared notes change
   useEffect(() => {
@@ -212,6 +216,7 @@ export default function AllNotes() {
               onReaction={handleReaction}
               onDelete={handleDeleteNote}
               availableReactions={availableReactions}
+              commentCount={commentCounts[note.id] || 0}
             />
           </li>
         ))}
