@@ -7,6 +7,8 @@ export default function NewNoteForm({
   loading,
   error,
   initialFields,
+  communities,
+  showCommunitySelector = false,
 }) {
   const [fields, setFields] = useState(
     initialFields && initialFields.length > 0
@@ -16,6 +18,8 @@ export default function NewNoteForm({
           { name: "URL", value: "" },
         ]
   );
+
+  const [selectedCommunityId, setSelectedCommunityId] = useState("");
 
   const handleFieldChange = (index, fieldName, value) => {
     const updatedFields = [...fields];
@@ -35,11 +39,48 @@ export default function NewNoteForm({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (fields.every((f) => !f.value.trim())) return;
-    onSubmit(fields);
+    onSubmit(fields, selectedCommunityId);
   };
 
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
+      {showCommunitySelector && (
+        <div className={styles.communitySelector}>
+          <label className={styles.label}>
+            Seleziona Community (opzionale):
+          </label>
+          {communities && communities.length > 0 ? (
+            <>
+              <select
+                value={selectedCommunityId}
+                onChange={(e) => setSelectedCommunityId(e.target.value)}
+                className={styles.select}
+              >
+                <option value="">📝 Nota Personale</option>
+                {communities.map((community) => (
+                  <option key={community.id} value={community.id}>
+                    👥 {community.name}
+                  </option>
+                ))}
+              </select>
+              {selectedCommunityId && (
+                <div className={styles.selectionInfo}>
+                  ℹ️ Questa nota sarà condivisa nella community selezionata
+                </div>
+              )}
+            </>
+          ) : (
+            <div className={styles.noCommunities}>
+              Non fai parte di nessuna community.
+              <a href="#/communities" className={styles.link}>
+                {" "}
+                Esplora le community
+              </a>
+              o creane una nuova!
+            </div>
+          )}
+        </div>
+      )}
       {fields.map((field, index) => (
         <div key={index} className={styles.field}>
           <input

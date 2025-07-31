@@ -94,7 +94,7 @@ export default function Community() {
     return () => unsubscribe();
   }, [id, user]);
 
-  const handleAddSharedNote = async (fields) => {
+  const handleAddSharedNote = async (fields, selectedCommunityId) => {
     if (!user) return;
     setError("");
     try {

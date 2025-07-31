@@ -30,6 +30,7 @@ export default function Dashboard() {
   const [notes, setNotes] = useState([]);
   const [sharedNotes, setSharedNotes] = useState([]);
   const [allUserNotes, setAllUserNotes] = useState([]);
+  const [userCommunities, setUserCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addingNote, setAddingNote] = useState(false);
   const [error, setError] = useState("");
@@ -116,6 +117,36 @@ export default function Dashboard() {
     };
   }, [user]);
 
+  // Fetch user communities for community selection in note creation
+  useEffect(() => {
+    if (!user || !user.uid) {
+      setUserCommunities([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, "communities"),
+      where("members", "array-contains", user.uid)
+    );
+
+    const unsubscribeCommunities = onSnapshot(
+      q,
+      (snapshot) => {
+        const communities = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setUserCommunities(communities);
+      },
+      (err) => {
+        console.error("Error fetching user communities:", err);
+        setError("Errore nel caricamento delle community.");
+      }
+    );
+
+    return () => unsubscribeCommunities();
+  }, [user]);
+
   // Separate useEffect for combining notes
   useEffect(() => {
     const combined = [...notes, ...sharedNotes];
@@ -130,14 +161,26 @@ export default function Dashboard() {
     }
   }, [notes, sharedNotes, user]);
 
-  const handleAddNote = async (fields) => {
+  const handleAddNote = async (fields, selectedCommunityId) => {
     setError("");
     try {
-      await addDoc(collection(db, "notes"), {
-        uid: user.uid,
-        fields,
-        created: Timestamp.now(),
-      });
+      if (selectedCommunityId) {
+        // Create shared note in community
+        await addDoc(collection(db, "sharedNotes"), {
+          communityId: selectedCommunityId,
+          authorId: user.uid,
+          authorEmail: user.email,
+          fields,
+          created: Timestamp.now(),
+        });
+      } else {
+        // Create personal note
+        await addDoc(collection(db, "notes"), {
+          uid: user.uid,
+          fields,
+          created: Timestamp.now(),
+        });
+      }
       setAddingNote(false);
     } catch (err) {
       console.error("Error handling notes:", err);
@@ -205,7 +248,14 @@ export default function Dashboard() {
             {addingNote ? "Annulla" : "＋ Nuova Nota"}
           </button>
         </div>
-        {addingNote && <NewNoteForm onAddNote={handleAddNote} />}
+        {addingNote && (
+          <NewNoteForm
+            onSubmit={handleAddNote}
+            onCancel={() => setAddingNote(false)}
+            communities={userCommunities}
+            showCommunitySelector={true}
+          />
+        )}
       </div>
 
       <div className={styles.section}>
