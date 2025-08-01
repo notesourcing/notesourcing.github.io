@@ -42,6 +42,7 @@ export default function Home() {
   const [allNotes, setAllNotes] = useState([]);
   const [personalNotes, setPersonalNotes] = useState([]);
   const [sharedNotes, setSharedNotes] = useState([]);
+  const [publicPersonalNotes, setPublicPersonalNotes] = useState([]);
   const [userCommunities, setUserCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -55,36 +56,54 @@ export default function Home() {
 
   // Combine and filter notes whenever personal or shared notes change
   useEffect(() => {
-    let combinedNotes = [...personalNotes, ...sharedNotes];
+    // Start with a base of shared (community) notes and public personal notes
+    let combinedNotes = [...sharedNotes, ...publicPersonalNotes];
+
+    // If the user is logged in, add their private personal notes
+    if (user) {
+      combinedNotes = [...combinedNotes, ...personalNotes];
+    }
+
+    // Deduplicate notes to prevent showing the same note twice
+    // (e.g., a user's own public note appearing in both personal and public lists)
+    const uniqueNotes = Array.from(
+      new Map(combinedNotes.map((note) => [note.id, note])).values()
+    );
 
     // Apply filtering based on user authentication and filter type
+    let filteredNotes = uniqueNotes;
     if (user) {
       // Authenticated user filtering
       if (filterType === "my") {
-        combinedNotes = combinedNotes.filter(
+        filteredNotes = uniqueNotes.filter(
           (note) =>
             (note.type === "personal" && note.uid === user?.uid) ||
             (note.type === "shared" && note.authorId === user?.uid)
         );
       } else if (filterType === "personal") {
-        combinedNotes = personalNotes;
+        // Show user's private notes + all public personal notes
+        filteredNotes = uniqueNotes.filter((note) => note.type === "personal");
       } else if (filterType === "shared") {
-        combinedNotes = sharedNotes;
+        filteredNotes = sharedNotes;
       }
       // "all" shows everything (default)
     } else {
-      // Unauthenticated user - only show shared notes from public communities
-      combinedNotes = sharedNotes; // Already filtered in the data fetching
+      // Unauthenticated user - only show shared notes from public communities and public personal notes
+      filteredNotes = uniqueNotes.filter(
+        (note) =>
+          note.type === "shared" ||
+          (note.type === "personal" && !note.isPrivate)
+      );
     }
 
-    combinedNotes.sort((a, b) => {
+    filteredNotes.sort((a, b) => {
       const dateA = a.created?.toDate ? a.created.toDate() : new Date(0);
       const dateB = b.created?.toDate ? b.created.toDate() : new Date(0);
       return dateB - dateA;
     });
-    setAllNotes(combinedNotes);
+    setAllNotes(filteredNotes);
     setLoading(false);
-  }, [personalNotes, sharedNotes, filterType, user]);
+  }, [personalNotes, sharedNotes, publicPersonalNotes, filterType, user]);
 
   useEffect(() => {
     setLoading(true);
@@ -197,31 +216,35 @@ export default function Home() {
             "authorId",
             (updatedNotes) => {
               // This callback is called whenever user data changes
-              // Apply filtering based on user authentication and community visibility
-              let filteredNotes = updatedNotes;
-              if (!user) {
-                // For unauthenticated users, only show notes from public communities
-                filteredNotes = updatedNotes.filter((note) => {
-                  return note.communityVisibility === "public";
-                });
-              }
+              // Apply filtering based on community visibility for all users
+              const filteredNotes = updatedNotes.filter((note) => {
+                const visibility = note.communityVisibility;
+                // Show notes if:
+                // 1. Visibility is explicitly "public"
+                // 2. Visibility is undefined/null (default to public)
+                // 3. Note has no communityId (standalone public note)
+                return (
+                  !visibility || visibility === "public" || !note.communityId
+                );
+              });
               setSharedNotes(filteredNotes);
             }
           );
 
           // Apply initial filtering and set notes
-          let initialFilteredNotes = enrichmentSystem.enrichedNotes;
-          if (!user) {
-            // For unauthenticated users, only show notes from public communities
-            initialFilteredNotes = enrichmentSystem.enrichedNotes.filter(
-              (note) => {
-                return note.communityVisibility === "public";
-              }
-            );
-          }
-          setSharedNotes(initialFilteredNotes);
-
-          // Store cleanup function
+          const initialFilteredNotes = enrichmentSystem.enrichedNotes.filter(
+            (note) => {
+              const visibility = note.communityVisibility;
+              // Show notes if:
+              // 1. Visibility is explicitly "public"
+              // 2. Visibility is undefined/null (default to public)
+              // 3. Note has no communityId (standalone public note)
+              return (
+                !visibility || visibility === "public" || !note.communityId
+              );
+            }
+          );
+          setSharedNotes(initialFilteredNotes); // Store cleanup function
           setNotesEnrichmentCleanup(() => enrichmentSystem.cleanup);
         } catch (err) {
           console.error("Error processing shared notes:", err);
@@ -234,9 +257,52 @@ export default function Home() {
       }
     );
 
+    // Set up real-time listener for all public personal notes
+    const publicPersonalNotesQuery = query(
+      collection(db, "notes"),
+      where("isPrivate", "==", false)
+    );
+    const unsubPublicPersonalNotes = onSnapshot(
+      publicPersonalNotesQuery,
+      async (snapshot) => {
+        try {
+          const rawNotes = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+            type: "personal",
+          }));
+
+          // Sort by creation date on the client side
+          rawNotes.sort((a, b) => {
+            const dateA = a.created?.toDate ? a.created.toDate() : new Date(0);
+            const dateB = b.created?.toDate ? b.created.toDate() : new Date(0);
+            return dateB - dateA;
+          });
+
+          const notesWithSeqIds = await addSequentialIdsToDocuments(
+            rawNotes,
+            "notes"
+          );
+
+          const enrichedNotes = await enrichNotesWithUserData(
+            notesWithSeqIds,
+            "uid"
+          );
+          setPublicPersonalNotes(enrichedNotes);
+        } catch (err) {
+          console.error("Error processing public personal notes:", err);
+          setError("Errore nel caricamento delle note pubbliche.");
+        }
+      },
+      (err) => {
+        console.error("Error with public personal notes listener:", err);
+        setError("Errore nel caricamento delle note pubbliche.");
+      }
+    );
     return () => {
       if (unsubPersonalNotes) unsubPersonalNotes();
       unsubSharedNotes();
+      unsubPublicPersonalNotes();
       // Clean up enrichment listeners
       if (notesEnrichmentCleanup) {
         notesEnrichmentCleanup();
@@ -524,6 +590,10 @@ export default function Home() {
             <>
               <h3>📝 Nessuna nota pubblica disponibile</h3>
               <p>Al momento non ci sono note pubbliche da visualizzare.</p>
+              <p>
+                Le note vengono mostrate solo dalle community pubbliche o senza
+                restrizioni di visibilità.
+              </p>
               <p>Accedi per vedere tutte le note e iniziare a contribuire!</p>
               <Link to="/login" className={styles.loginButton}>
                 🔑 Accedi ora
