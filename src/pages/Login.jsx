@@ -10,6 +10,7 @@ import {
 import { db } from "../firebase";
 import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { AuthContext } from "../App";
 import styles from "./Login.module.css";
 
@@ -19,6 +20,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
   const { user } = useContext(AuthContext);
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export default function Login() {
     e.preventDefault();
     setError("");
     if (!email || !password) {
-      setError("Inserisci email e password.");
+      setError(t("enterEmailPassword"));
       return;
     }
     try {
@@ -85,7 +87,7 @@ export default function Login() {
   return (
     <div className={styles.container}>
       <h2 className={styles.title}>
-        {isRegistering ? "Registrati" : "Accedi"}
+        {isRegistering ? t("register") : t("signIn")}
       </h2>
       {error && <div className={styles.error}>{error}</div>}
 
@@ -93,17 +95,17 @@ export default function Login() {
         className={`${styles.button} ${styles.googleButton}`}
         onClick={() => handleOAuthLogin(new GoogleAuthProvider())}
       >
-        Accedi con Google
+        {t("signInWithGoogle")}
       </button>
       <button
         className={`${styles.button} ${styles.githubButton}`}
         onClick={() => handleOAuthLogin(new GithubAuthProvider())}
       >
-        Accedi con GitHub
+        {t("signInWithGitHub")}
       </button>
 
       <div className={styles.separator}>
-        <span>OR</span>
+        <span>{t("or")}</span>
       </div>
 
       <form onSubmit={handleEmailAuth} className={styles.form}>
@@ -111,7 +113,7 @@ export default function Login() {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
+          placeholder={t("email")}
           className={styles.input}
           required
         />
@@ -119,7 +121,7 @@ export default function Login() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
+          placeholder={t("password")}
           className={styles.input}
           required
         />
@@ -127,7 +129,7 @@ export default function Login() {
           type="submit"
           className={`${styles.button} ${styles.emailButton}`}
         >
-          {isRegistering ? "Registrati" : "Accedi"} con l'Email
+          {isRegistering ? t("registerWithEmail") : t("signInWithEmail")}
         </button>
       </form>
 
@@ -135,9 +137,7 @@ export default function Login() {
         onClick={() => setIsRegistering(!isRegistering)}
         className={styles.toggleLink}
       >
-        {isRegistering
-          ? "Hai già un account? Accedi"
-          : "Non hai un account? Registrati"}
+        {isRegistering ? t("alreadyHaveAccount") : t("dontHaveAccount")}
       </button>
     </div>
   );

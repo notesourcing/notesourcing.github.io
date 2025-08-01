@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { db } from "../firebase";
 import {
   collection,
@@ -25,6 +26,7 @@ import styles from "./Communities.module.css";
 
 export default function Communities() {
   const { user } = useContext(AuthContext);
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [adminCommunities, setAdminCommunities] = useState([]);
   const [userCommunities, setUserCommunities] = useState([]);
@@ -360,13 +362,25 @@ export default function Communities() {
   const getVisibilityBadge = (visibility) => {
     switch (visibility) {
       case "public":
-        return { text: "🌍 Pubblica", className: styles.publicBadge };
+        return {
+          text: "🌍 " + t("publicBadge"),
+          className: styles.publicBadge,
+        };
       case "private":
-        return { text: "🔒 Privata", className: styles.privateBadge };
+        return {
+          text: "🔒 " + t("privateBadge"),
+          className: styles.privateBadge,
+        };
       case "hidden":
-        return { text: "👁️‍🗨️ Nascosta", className: styles.hiddenBadge };
+        return {
+          text: "👁️‍🗨️ " + t("hiddenBadge"),
+          className: styles.hiddenBadge,
+        };
       default:
-        return { text: "🌍 Pubblica", className: styles.publicBadge };
+        return {
+          text: "🌍 " + t("publicBadge"),
+          className: styles.publicBadge,
+        };
     }
   };
 
@@ -416,7 +430,7 @@ export default function Communities() {
           </div>
 
           <p className={styles.communityDescription}>
-            {community.description || "Nessuna descrizione disponibile"}
+            {community.description || t("noDescriptionAvailable")}
           </p>
 
           <div className={styles.statsGrid}>
@@ -449,7 +463,7 @@ export default function Communities() {
               </span>
               {community.lastActivity && (
                 <span className={styles.lastActivity}>
-                  ⚡ Ultima attività: {formatDate(community.lastActivity)}
+                  ⚡ {t("lastActivity")}: {formatDate(community.lastActivity)}
                 </span>
               )}
             </div>
@@ -457,7 +471,9 @@ export default function Communities() {
               {community.lastActivity &&
                 Date.now() - community.lastActivity.getTime() <
                   7 * 24 * 60 * 60 * 1000 && (
-                  <span className={styles.activeIndicator}>🟢 Attiva</span>
+                  <span className={styles.activeIndicator}>
+                    🟢 {t("active")}
+                  </span>
                 )}
             </div>
           </div>
@@ -467,7 +483,7 @@ export default function Communities() {
   };
 
   if (loading) {
-    return <div className={styles.loading}>Caricamento delle community...</div>;
+    return <div className={styles.loading}>{t("loadingCommunities")}</div>;
   }
 
   if (error) {
@@ -477,44 +493,48 @@ export default function Communities() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1 className={styles.title}>Community</h1>
+        <h1 className={styles.title}>{t("communities")}</h1>
         {user && (
           <button
             onClick={() => setShowCreateForm(!showCreateForm)}
             className={styles.createButton}
           >
-            {showCreateForm ? "Annulla" : "Crea Community"}
+            {showCreateForm ? t("cancel") : t("createCommunity")}
           </button>
         )}
       </div>
 
       {/* Overall Statistics */}
       <div className={styles.overallStats}>
-        <h2 className={styles.statsTitle}>📊 Statistiche Globali</h2>
+        <h2 className={styles.statsTitle}>📊 {t("globalStats")}</h2>
         <div className={styles.statsContainer}>
           <div className={styles.globalStatItem}>
             <span className={styles.globalStatNumber}>
               {overallStats.totalCommunities}
             </span>
-            <span className={styles.globalStatLabel}>Community Totali</span>
+            <span className={styles.globalStatLabel}>
+              {t("totalCommunities")}
+            </span>
           </div>
           <div className={styles.globalStatItem}>
             <span className={styles.globalStatNumber}>
               {overallStats.totalNotes}
             </span>
-            <span className={styles.globalStatLabel}>Note Totali</span>
+            <span className={styles.globalStatLabel}>{t("totalNotes")}</span>
           </div>
           <div className={styles.globalStatItem}>
             <span className={styles.globalStatNumber}>
               {overallStats.totalComments}
             </span>
-            <span className={styles.globalStatLabel}>Commenti Totali</span>
+            <span className={styles.globalStatLabel}>{t("totalComments")}</span>
           </div>
           <div className={styles.globalStatItem}>
             <span className={styles.globalStatNumber}>
               {overallStats.totalReactions}
             </span>
-            <span className={styles.globalStatLabel}>Reazioni Totali</span>
+            <span className={styles.globalStatLabel}>
+              {t("totalReactions")}
+            </span>
           </div>
         </div>
       </div>
@@ -525,45 +545,36 @@ export default function Communities() {
             type="text"
             value={newCommunityName}
             onChange={(e) => setNewCommunityName(e.target.value)}
-            placeholder="Nome della tua community"
+            placeholder={t("communityNamePlaceholder")}
             required
             className={styles.input}
           />
           <textarea
             value={newCommunityDescription}
             onChange={(e) => setNewCommunityDescription(e.target.value)}
-            placeholder="Descrivi la tua community"
+            placeholder={t("communityDescPlaceholder")}
             className={styles.textarea}
           />
           <div className={styles.visibilitySelector}>
-            <label className={styles.visibilityLabel}>Visibilità:</label>
+            <label className={styles.visibilityLabel}>{t("visibility")}:</label>
             <select
               value={newCommunityVisibility}
               onChange={(e) => setNewCommunityVisibility(e.target.value)}
               className={styles.select}
             >
-              <option value="public">
-                🌍 Pubblica - Tutti possono vedere le note
-              </option>
-              <option value="private">
-                🔒 Privata - Solo i membri possono vedere le note
-              </option>
-              <option value="hidden">
-                👁️‍🗨️ Nascosta - Solo su invito, non scopribile
-              </option>
+              <option value="public">{t("publicCommunity")}</option>
+              <option value="private">{t("privateCommunity")}</option>
+              <option value="hidden">{t("hiddenCommunity")}</option>
             </select>
             <small className={styles.visibilityHint}>
-              {newCommunityVisibility === "public" &&
-                "Chiunque può vedere le note di questa community."}
-              {newCommunityVisibility === "private" &&
-                "Solo i membri possono vedere le note, ma la community è visibile a tutti."}
-              {newCommunityVisibility === "hidden" &&
-                "La community è completamente nascosta e accessibile solo su invito."}
+              {newCommunityVisibility === "public" && t("publicHint")}
+              {newCommunityVisibility === "private" && t("privateHint")}
+              {newCommunityVisibility === "hidden" && t("hiddenHint")}
             </small>
           </div>
           <div className={styles.buttonGroup}>
             <button type="submit" className={styles.createButton}>
-              Conferma
+              {t("confirm")}
             </button>
           </div>
         </form>
