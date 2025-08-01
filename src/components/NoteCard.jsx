@@ -36,15 +36,15 @@ export default function NoteCard({
 
   const formatAttribution = (note) => {
     if (!note.attribution) {
-      // Fallback to existing user display for notes without attribution
-      return formatUserDisplayName(note);
+      // Use community-specific display name if available, otherwise fall back to standard display
+      return note.communityDisplayName || formatUserDisplayName(note);
     }
 
     const { type, name, revealPseudonym } = note.attribution;
 
     switch (type) {
       case "self":
-        return formatUserDisplayName(note);
+        return note.communityDisplayName || formatUserDisplayName(note);
       case "other":
         return name || "Persona sconosciuta";
       case "pseudonym":

@@ -2,7 +2,17 @@ import React, { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../App";
 import { db } from "../firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  onSnapshot,
+  serverTimestamp,
+} from "firebase/firestore";
+import { getUserCommunityCustomNames } from "../utils/userUtils";
 import styles from "./Profile.module.css";
 
 export default function Profile() {
@@ -18,6 +28,10 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [communities, setCommunities] = useState([]);
+  const [communityCustomNames, setCommunityCustomNames] = useState({});
+  const [editingCommunityNames, setEditingCommunityNames] = useState(false);
+  const [tempCommunityNames, setTempCommunityNames] = useState({});
 
   useEffect(() => {
     if (!user) {
@@ -36,6 +50,10 @@ export default function Profile() {
             email: userData.email || user.email || "",
             photoURL: userData.photoURL || "",
           });
+          // Load community custom names
+          const customNames = userData.communityCustomNames || {};
+          setCommunityCustomNames(customNames);
+          setTempCommunityNames(customNames);
         } else {
           // Initialize with auth data if user document doesn't exist
           setProfile({
@@ -52,7 +70,36 @@ export default function Profile() {
       }
     };
 
+    // Fetch user's communities
+    const fetchCommunities = () => {
+      const communitiesQuery = query(
+        collection(db, "communities"),
+        where("members", "array-contains", user.uid)
+      );
+
+      const unsubscribe = onSnapshot(
+        communitiesQuery,
+        (snapshot) => {
+          const userCommunities = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setCommunities(userCommunities);
+        },
+        (err) => {
+          console.error("Error fetching user communities:", err);
+        }
+      );
+
+      return unsubscribe;
+    };
+
     fetchProfile();
+    const unsubscribeCommunities = fetchCommunities();
+
+    return () => {
+      unsubscribeCommunities();
+    };
   }, [user, navigate]);
 
   const handleSave = async () => {
@@ -71,7 +118,7 @@ export default function Profile() {
       const userRef = doc(db, "users", user.uid);
       await updateDoc(userRef, {
         displayName: profile.displayName.trim(),
-        // Keep other fields unchanged
+        updatedAt: serverTimestamp(),
       });
 
       setIsEditing(false);
@@ -87,11 +134,52 @@ export default function Profile() {
     }
   };
 
+  const handleSaveCommunityNames = async () => {
+    if (!user) return;
+
+    setSaving(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, {
+        communityCustomNames: tempCommunityNames,
+        updatedAt: serverTimestamp(),
+      });
+
+      setCommunityCustomNames(tempCommunityNames);
+      setEditingCommunityNames(false);
+      setSuccess("Nomi personalizzati aggiornati con successo!");
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Error updating community names:", err);
+      setError("Errore durante l'aggiornamento dei nomi personalizzati.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleCancel = () => {
     setIsEditing(false);
     setError("");
     // Reset form to original values
     // You might want to re-fetch here, but for simplicity we'll assume no changes
+  };
+
+  const handleCancelCommunityNames = () => {
+    setEditingCommunityNames(false);
+    setTempCommunityNames(communityCustomNames);
+    setError("");
+  };
+
+  const handleCommunityNameChange = (communityId, newName) => {
+    setTempCommunityNames((prev) => ({
+      ...prev,
+      [communityId]: newName.trim(),
+    }));
   };
 
   if (loading) {
@@ -181,6 +269,98 @@ export default function Profile() {
         )}
       </div>
 
+      {/* Community Custom Names Section */}
+      <div className={styles.profileCard}>
+        <div className={styles.sectionHeader}>
+          <h3 className={styles.sectionTitle}>
+            🏘️ Nomi Personalizzati nelle Community
+          </h3>
+          {!editingCommunityNames && communities.length > 0 && (
+            <button
+              className={styles.editButton}
+              onClick={() => setEditingCommunityNames(true)}
+            >
+              ✏️ Modifica Nomi
+            </button>
+          )}
+        </div>
+
+        {communities.length === 0 ? (
+          <p className={styles.emptyMessage}>
+            Non sei ancora membro di nessuna community.
+          </p>
+        ) : (
+          <div className={styles.communityNamesSection}>
+            {communities.map((community) => (
+              <div key={community.id} className={styles.communityNameField}>
+                <div className={styles.communityInfo}>
+                  <strong className={styles.communityName}>
+                    {community.name}
+                  </strong>
+                  <span className={styles.communityVisibility}>
+                    {community.visibility === "public" && "🌍 Pubblica"}
+                    {community.visibility === "private" && "🔒 Privata"}
+                    {community.visibility === "hidden" && "👁️‍🗨️ Nascosta"}
+                    {!community.visibility && "🌍 Pubblica"}
+                  </span>
+                </div>
+
+                {editingCommunityNames ? (
+                  <div className={styles.nameInputContainer}>
+                    <input
+                      type="text"
+                      value={tempCommunityNames[community.id] || ""}
+                      onChange={(e) =>
+                        handleCommunityNameChange(community.id, e.target.value)
+                      }
+                      placeholder="Nome personalizzato per questa community"
+                      className={styles.communityNameInput}
+                      maxLength={50}
+                    />
+                    <small className={styles.inputHint}>
+                      Lascia vuoto per usare il nome profilo predefinito
+                    </small>
+                  </div>
+                ) : (
+                  <div className={styles.currentName}>
+                    <span className={styles.nameLabel}>Nome visualizzato:</span>
+                    <span className={styles.nameValue}>
+                      {communityCustomNames[community.id] ||
+                        profile.displayName ||
+                        profile.email.split("@")[0] ||
+                        "Nome non impostato"}
+                    </span>
+                    {communityCustomNames[community.id] && (
+                      <span className={styles.customIndicator}>
+                        (personalizzato)
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {editingCommunityNames && (
+          <div className={styles.buttonSection}>
+            <button
+              className={styles.saveButton}
+              onClick={handleSaveCommunityNames}
+              disabled={saving}
+            >
+              {saving ? "Salvataggio..." : "💾 Salva Nomi Personalizzati"}
+            </button>
+            <button
+              className={styles.cancelButton}
+              onClick={handleCancelCommunityNames}
+            >
+              ❌ Annulla
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className={styles.infoSection}>
         <h3 className={styles.infoTitle}>ℹ️ Informazioni</h3>
         <ul className={styles.infoList}>
@@ -194,6 +374,14 @@ export default function Profile() {
             della @ della tua email
           </li>
           <li>Il nome visualizzato può essere lungo massimo 50 caratteri</li>
+          <li>
+            Puoi impostare nomi personalizzati diversi per ogni community a cui
+            partecipi
+          </li>
+          <li>
+            I nomi personalizzati delle community hanno la priorità sul nome
+            profilo generale
+          </li>
         </ul>
       </div>
     </div>

@@ -15,6 +15,7 @@ import {
   addDoc,
   doc,
   getDoc,
+  setDoc,
   Timestamp,
   orderBy,
   getDocs,
@@ -27,7 +28,8 @@ import {
 import {
   enrichNotesWithUserData,
   enrichNoteWithUserData,
-  formatUserDisplayName,
+  formatUserDisplayNameSimple,
+  enrichNotesWithCommunityNames,
 } from "../utils/userUtils";
 import NewNoteForm from "../components/NewNoteForm";
 import NoteCard from "../components/NoteCard";
@@ -49,6 +51,10 @@ export default function Community() {
   const [requestingJoin, setRequestingJoin] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
   const [leavingCommunity, setLeavingCommunity] = useState(false);
+  const [showConfigDropdown, setShowConfigDropdown] = useState(false);
+  const [showCustomNameForm, setShowCustomNameForm] = useState(false);
+  const [customDisplayName, setCustomDisplayName] = useState("");
+  const [savingCustomName, setSavingCustomName] = useState(false);
   const [communityStats, setCommunityStats] = useState({
     memberCount: 0,
     noteCount: 0,
@@ -60,6 +66,25 @@ export default function Community() {
 
   // Get comment counts for shared notes
   const commentCounts = useCommentCounts(sharedNotes);
+
+  // Handle click outside to close config dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        showConfigDropdown &&
+        !event.target.closest("[data-config-container]")
+      ) {
+        setShowConfigDropdown(false);
+        setShowCustomNameForm(false);
+      }
+    };
+
+    if (showConfigDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showConfigDropdown]);
 
   useEffect(() => {
     if (!id) return;
@@ -84,7 +109,7 @@ export default function Community() {
           );
           const communityWithCreator = {
             ...enrichedCommunity,
-            creatorDisplayName: formatUserDisplayName(enrichedCommunity),
+            creatorDisplayName: formatUserDisplayNameSimple(enrichedCommunity),
           };
           setCommunity(communityWithCreator);
         } catch (err) {
@@ -103,6 +128,21 @@ export default function Community() {
 
           // Check if user is the creator
           setIsCreator(communityData.creatorId === user.uid);
+
+          // Load custom display name if user is a member
+          if (isUserMember) {
+            try {
+              const userDoc = await getDoc(doc(db, "users", user.uid));
+              if (userDoc.exists()) {
+                const userData = userDoc.data();
+                const communityCustomNames =
+                  userData.communityCustomNames || {};
+                setCustomDisplayName(communityCustomNames[id] || "");
+              }
+            } catch (err) {
+              console.log("No custom name found or error loading:", err);
+            }
+          }
 
           // If not a member, check if user has already requested to join
           if (!isUserMember) {
@@ -156,12 +196,20 @@ export default function Community() {
             ...doc.data(),
           }));
 
-          // Enrich notes with user display data
+          // First enrich notes with basic user display data
           const enrichedNotes = await enrichNotesWithUserData(
             rawNotes,
             "authorId"
           );
-          setSharedNotes(enrichedNotes);
+
+          // Then enrich with community-specific custom display names
+          const communityEnrichedNotes = await enrichNotesWithCommunityNames(
+            enrichedNotes,
+            id,
+            "authorId"
+          );
+
+          setSharedNotes(communityEnrichedNotes);
         },
         (err) => {
           console.error("Error fetching shared notes:", err);
@@ -396,6 +444,78 @@ export default function Community() {
     }
   };
 
+  const handleSaveCustomName = async () => {
+    if (!user || !customDisplayName.trim() || savingCustomName) return;
+
+    setSavingCustomName(true);
+    setError("");
+
+    try {
+      // Save custom name in the user's document under communityCustomNames
+      const userRef = doc(db, "users", user.uid);
+
+      // Get current user data to preserve existing custom names for other communities
+      const userDoc = await getDoc(userRef);
+      const currentData = userDoc.exists() ? userDoc.data() : {};
+      const currentCustomNames = currentData.communityCustomNames || {};
+
+      // Update with new custom name for this community
+      const updatedCustomNames = {
+        ...currentCustomNames,
+        [id]: customDisplayName.trim(),
+      };
+
+      await updateDoc(userRef, {
+        communityCustomNames: updatedCustomNames,
+        updatedAt: serverTimestamp(),
+      }).catch(async () => {
+        // If user document doesn't exist, create it
+        await setDoc(userRef, {
+          uid: user.uid,
+          email: user.email,
+          communityCustomNames: { [id]: customDisplayName.trim() },
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      });
+
+      setShowCustomNameForm(false);
+      setShowConfigDropdown(false);
+
+      // Refresh the notes to show updated custom names
+      if (sharedNotes.length > 0) {
+        try {
+          const communityEnrichedNotes = await enrichNotesWithCommunityNames(
+            sharedNotes,
+            id,
+            "authorId"
+          );
+          setSharedNotes(communityEnrichedNotes);
+        } catch (err) {
+          console.log("Error refreshing notes with new custom name:", err);
+        }
+      }
+    } catch (err) {
+      console.error("Error saving custom name:", err);
+      setError("Errore durante il salvataggio del nome personalizzato.");
+    } finally {
+      setSavingCustomName(false);
+    }
+  };
+
+  const handleConfigDropdownToggle = () => {
+    setShowConfigDropdown(!showConfigDropdown);
+    if (showCustomNameForm) {
+      setShowCustomNameForm(false);
+      setCustomDisplayName("");
+    }
+  };
+
+  const handleShowCustomNameForm = () => {
+    setShowCustomNameForm(true);
+    setCustomDisplayName(""); // Reset form
+  };
+
   const handleReaction = async (noteId, noteType, reaction) => {
     if (!user) return;
 
@@ -480,15 +600,74 @@ export default function Community() {
             )}
           </div>
         </div>
-        {/* Leave Community Button - only for non-creator members */}
-        {isMember && !isCreator && (
-          <button
-            className={styles.leaveButton}
-            onClick={handleLeaveCommunity}
-            disabled={leavingCommunity}
-          >
-            {leavingCommunity ? "Uscita in corso..." : "Lascia Community"}
-          </button>
+        {/* Community Config Dropdown - only for members */}
+        {isMember && (
+          <div className={styles.configContainer} data-config-container>
+            <button
+              className={styles.configButton}
+              onClick={handleConfigDropdownToggle}
+              aria-label="Configurazioni community"
+            >
+              ⚙️
+            </button>
+            {showConfigDropdown && (
+              <div className={styles.configDropdown}>
+                <button
+                  className={styles.configOption}
+                  onClick={handleShowCustomNameForm}
+                >
+                  📝 Cambia nome visualizzato
+                </button>
+                {!isCreator && (
+                  <button
+                    className={styles.configOption}
+                    onClick={handleLeaveCommunity}
+                    disabled={leavingCommunity}
+                  >
+                    {leavingCommunity
+                      ? "Uscita in corso..."
+                      : "🚪 Lascia Community"}
+                  </button>
+                )}
+              </div>
+            )}
+            {showCustomNameForm && (
+              <div className={styles.customNameForm}>
+                <div className={styles.formHeader}>
+                  <h4>Nome personalizzato per questa community</h4>
+                  <button
+                    className={styles.closeButton}
+                    onClick={() => setShowCustomNameForm(false)}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  className={styles.nameInput}
+                  value={customDisplayName}
+                  onChange={(e) => setCustomDisplayName(e.target.value)}
+                  placeholder="Inserisci il tuo nome personalizzato"
+                  maxLength={50}
+                />
+                <div className={styles.formActions}>
+                  <button
+                    className={styles.saveButton}
+                    onClick={handleSaveCustomName}
+                    disabled={!customDisplayName.trim() || savingCustomName}
+                  >
+                    {savingCustomName ? "Salvando..." : "Salva"}
+                  </button>
+                  <button
+                    className={styles.cancelButton}
+                    onClick={() => setShowCustomNameForm(false)}
+                  >
+                    Annulla
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
