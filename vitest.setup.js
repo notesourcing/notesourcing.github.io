@@ -1,6 +1,7 @@
 // Vitest setup for React Testing Library
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
+import { cleanup } from "@testing-library/react";
 
 // Global Firebase mock for all tests
 const mockApp = {
@@ -87,6 +88,11 @@ vi.mock("firebase/analytics", () => ({
   getAnalytics: vi.fn(),
   isSupported: vi.fn(() => Promise.resolve(false)),
 }));
+
+// Clean up the DOM after each test
+afterEach(() => {
+  cleanup();
+});
 
 // Global test utilities
 global.mockFirebaseDoc = {

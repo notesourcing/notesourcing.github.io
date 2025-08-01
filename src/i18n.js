@@ -12,7 +12,6 @@ const resources = {
       profile: "Profile",
       login: "Login",
       logout: "Logout",
-      about: "About",
 
       // Common actions
       save: "Save",
@@ -33,7 +32,6 @@ const resources = {
       forgotPassword: "Forgot Password?",
       register: "Register",
       signInWithGoogle: "Sign in with Google",
-      signInWithGitHub: "Sign in with GitHub",
       signInWithEmail: "Sign in with Email",
       registerWithEmail: "Register with Email",
       or: "OR",
@@ -192,7 +190,6 @@ const resources = {
       profile: "Profilo",
       login: "Accedi",
       logout: "Esci",
-      about: "Chi Siamo",
 
       // Common actions
       save: "Salva",
@@ -213,7 +210,6 @@ const resources = {
       forgotPassword: "Password dimenticata?",
       register: "Registrati",
       signInWithGoogle: "Accedi con Google",
-      signInWithGitHub: "Accedi con GitHub",
       signInWithEmail: "Accedi con l'Email",
       registerWithEmail: "Registrati con l'Email",
       or: "OPPURE",
@@ -373,7 +369,6 @@ const resources = {
       profile: "Perfil",
       login: "Entrar",
       logout: "Sair",
-      about: "Sobre",
 
       // Common actions
       save: "Salvar",
@@ -394,7 +389,6 @@ const resources = {
       forgotPassword: "Esqueceu a senha?",
       register: "Cadastrar",
       signInWithGoogle: "Entrar com Google",
-      signInWithGitHub: "Entrar com GitHub",
       signInWithEmail: "Entrar com Email",
       registerWithEmail: "Cadastrar com Email",
       or: "OU",

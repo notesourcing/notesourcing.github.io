@@ -5,7 +5,6 @@ import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
-  GithubAuthProvider,
 } from "firebase/auth";
 import { db } from "../firebase";
 import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
@@ -96,12 +95,6 @@ export default function Login() {
         onClick={() => handleOAuthLogin(new GoogleAuthProvider())}
       >
         {t("signInWithGoogle")}
-      </button>
-      <button
-        className={`${styles.button} ${styles.githubButton}`}
-        onClick={() => handleOAuthLogin(new GithubAuthProvider())}
-      >
-        {t("signInWithGitHub")}
       </button>
 
       <div className={styles.separator}>

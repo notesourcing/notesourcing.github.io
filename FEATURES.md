@@ -8,6 +8,17 @@ This document tracks all implemented features to prevent accidental removal duri
 
 **Dashboard Consolidation (2025-01-31)**: The Dashboard functionality has been consolidated into the Home page for a unified user experience. All Dashboard features (personal note creation, real-time updates, SuperAdmin functionality) are now available in the enhanced Home page with improved filtering capabilities.
 
+## 🌍 Internationalization (i18n)
+
+### ✅ Multi-language Support
+
+- **Three Languages**: Italian (default), English, Portuguese
+- **Language Detection**: Automatic browser language detection with fallback
+- **Language Switcher**: Component for changing languages with flag emojis
+- **Comprehensive Translations**: All UI strings, navigation, buttons, and messages
+- **React i18next Integration**: Complete i18n framework implementation
+- **Real-time Language Switching**: Instant UI updates when changing languages
+
 ---
 
 ## 🔐 Authentication & User Management
@@ -37,6 +48,8 @@ This document tracks all implemented features to prevent accidental removal duri
 - **Delete**: Remove personal notes (with confirmation)
 - **Real-time Updates**: Notes appear instantly via onSnapshot listeners
 - **Field-based Structure**: Notes use dynamic fields (name/value pairs)
+- **Privacy Control**: Public/private visibility options for personal notes
+- **Privacy Editing**: Change privacy settings when editing existing notes
 
 ### ✅ Shared Notes (Community Notes)
 
@@ -46,6 +59,8 @@ This document tracks all implemented features to prevent accidental removal duri
 - **Delete**: Remove shared notes (author, admin, or superadmin)
 - **Real-time Updates**: Community notes appear instantly across all pages
 - **Community Association**: Notes linked to specific communities
+- **Visibility Inheritance**: Notes inherit visibility from their community settings
+- **Sequential ID System**: Unique sequential IDs for shareable URLs
 
 ### ✅ Note Display & Navigation
 
@@ -53,9 +68,11 @@ This document tracks all implemented features to prevent accidental removal duri
 - **Note Filtering**: Filter by "All Notes", "My Notes", "Personal Notes Only", "Community Notes Only"
 - **Note Creation**: Integrated note creation form in Home page with community selection
 - **Note Detail Page**: Individual note view/edit interface with read-only mode for non-authors
-- **Community Pages**: Community-specific note feeds
-- **Public Viewing**: All notes are publicly viewable (consistent with home page display)
+- **Community Pages**: Community-specific note feeds with access control
+- **Public Viewing**: Notes viewable based on privacy/community visibility settings
 - **Edit Permissions**: Only note authors can edit/delete their notes
+- **Back Navigation**: Smart back links to appropriate source pages
+- **Sequential URL Support**: Clean URLs using sequential IDs instead of Firebase IDs
 
 ### ✅ Note Attribution System
 
@@ -66,7 +83,8 @@ This document tracks all implemented features to prevent accidental removal duri
 - **Anonymous Attribution**: Notes can be made completely anonymous
 - **Reveal Control**: For pseudonyms and eteronyms, users can choose to reveal the nature of the name
 - **Edit Attribution**: Note authors can change attribution details when editing notes
-- **Display Integration**: Attribution is displayed in note cards and detail views
+- **Display Integration**: Attribution is displayed consistently in note cards and detail views
+- **Author Display Logic**: Smart author name resolution based on attribution type and reveal settings
 
 ### ✅ Comments System
 
@@ -75,12 +93,10 @@ This document tracks all implemented features to prevent accidental removal duri
 - **View Comments**: Hierarchical display of comments and replies with proper indentation
 - **Delete Comments**: Comment authors can delete their own comments and replies
 - **Real-time Updates**: Comments and replies appear instantly via onSnapshot listeners
-- **User Attribution**: Comments show author name and timestamp
+- **User Attribution**: Comments show author name and timestamp with user data enrichment
 - **Nested Depth Control**: Limits reply nesting to prevent UI issues (max 3 levels)
-- **Permissions**: Only logged-in users can add comments and replies
-- **Permissions**: Only logged-in users can add comments
-- **Note Detail Page**: Individual note view/edit interface
-- **Community Pages**: Community-specific note feeds
+- **Authentication Required**: Only logged-in users can add comments and replies
+- **Comment Count Integration**: Real-time comment counts displayed on note cards
 
 ---
 
@@ -88,18 +104,37 @@ This document tracks all implemented features to prevent accidental removal duri
 
 ### ✅ Community Features
 
-- **Create Communities**: Users can create new communities
-- **Join Communities**: Users can join existing communities
-- **Community Listing**: Separate "user communities" and "other communities"
+- **Create Communities**: Users can create new communities with visibility controls
+- **Community Visibility Options**: Public, Private, Hidden community types
+  - **Public Communities**: Visible to all, notes viewable by everyone
+  - **Private Communities**: Visible to all but only members can see notes
+  - **Hidden Communities**: Completely hidden, invitation-only access
+- **Join Communities**: Users can join existing communities or request access
+- **Leave Communities**: Members can leave communities (except creators)
+- **Community Listing**: Separate sections for admin communities, member communities, and other communities
 - **Real-time Updates**: Communities appear instantly via onSnapshot
-- **Community Stats**: Member count, note count, latest activity
-- **Community Navigation**: Direct links to community pages
+- **Community Stats**: Member count, note count, comment count, reaction count, last activity tracking
+- **Community Navigation**: Direct links to community pages with sequential IDs
+- **Landing Page Integration**: Community features showcased on landing page
+- **Public Community Browsing**: Non-authenticated users can browse public/private communities
+- **Membership Management**: Join requests system for private/hidden communities
 
-### ✅ Community Permissions
+### ✅ Community Access Control
 
-- **Membership Control**: Only members can view community content
-- **Creator Privileges**: Community creators have admin rights
-- **Note Permissions**: Members can create notes, authors/admins can delete
+- **Visibility-based Access**: Different access levels based on community type
+- **Member-only Features**: Note creation restricted to community members
+- **Creator Privileges**: Community creators have admin rights and cannot leave
+- **Join Request System**: Pending request management for private/hidden communities
+- **Authentication-based Filtering**: Different community lists for authenticated/non-authenticated users
+
+### ✅ Community User Experience
+
+- **Custom Display Names**: Members can set custom names per community
+- **Community Configuration**: Settings dropdown for members with name customization
+- **Creator Information**: Display of community creator with enriched user data
+- **Community Statistics Dashboard**: Real-time member/note/comment/reaction counts
+- **Community Description**: Rich description display for communities
+- **Admin Badge System**: Visual indicators for creators and members
 
 ---
 
@@ -152,20 +187,31 @@ This document tracks all implemented features to prevent accidental removal duri
 
 ---
 
-## 🛡️ Data Management
+## 🛡️ Data Management & Infrastructure
 
 ### ✅ Database Structure
 
-- **Collections**: `notes`, `sharedNotes`, `communities`, `users`, `comments`
+- **Collections**: `notes`, `sharedNotes`, `communities`, `users`, `comments`, `joinRequests`
 - **Relationships**: Notes linked to users and communities, comments linked to notes with optional parent-child relationships
 - **Metadata**: Creation dates, author information, community names, comment timestamps, reply threading
 - **Query Optimization**: Efficient queries with proper indexing
+- **Sequential ID System**: Clean, shareable URLs with sequential numbering for documents
+- **Real-time Enrichment**: User data enrichment system for display names and community custom names
 
 ### ✅ Data Validation
 
 - **Required Fields**: Validation for essential data
 - **User Permissions**: Authorization checks before operations
 - **Error Handling**: Comprehensive error catching and reporting
+- **Access Control**: Visibility-based data filtering for communities and notes
+
+### ✅ User Data Management
+
+- **User Profiles**: Extended user documents with display names and community customizations
+- **Custom Community Names**: Per-community display name customization
+- **Profile Management**: User profile editing with community name management
+- **User Data Enrichment**: Real-time user display data integration across all note displays
+- **User Utility Functions**: Helper functions for user display name formatting and data management
 
 ---
 
@@ -190,13 +236,34 @@ This document tracks all implemented features to prevent accidental removal duri
 
 ### ✅ Core Pages
 
-- **Home**: Public note feed with reactions
-- **Dashboard**: User's personal note management
-- **Communities**: Community browser and management
-- **Community Detail**: Individual community view
-- **Note Detail**: Individual note view/edit
-- **Login**: Authentication interface
-- **User Roles**: Admin user management
+- **Home**: Unified notes feed with reactions, filtering, and note creation
+- **Communities**: Community browser and management with visibility filtering
+- **Community Detail**: Individual community view with access control and member management
+- **Note Detail**: Individual note view/edit with attribution and privacy controls
+- **Login**: Authentication interface with email/password and Google OAuth
+- **User Roles**: Admin user management interface
+- **Profile**: User profile management with community custom names
+- **Landing**: Welcome page with feature showcase and quick start guide
+- **About**: Application information and links
+
+### ✅ Key Components
+
+- **NewNoteForm**: Multi-purpose note creation with attribution, privacy, and community selection
+- **NoteCard**: Note display component with reactions, comments, and attribution
+- **Comments**: Threaded comment system with replies and real-time updates
+- **LanguageSwitcher**: Language selection component with flag emojis
+- **JoinRequestManager**: Community join request management for creators
+- **Logo**: Application logo component
+
+### ✅ Hooks & Utilities
+
+- **useAppName**: Dynamic application name hook
+- **useCommentCounts**: Real-time comment count tracking
+- **featureMonitor**: Feature usage monitoring and validation
+- **userUtils**: User data enrichment and display name utilities
+- **sequentialIds**: Clean URL ID system for documents
+- **testUtils**: Testing utilities and helpers
+- **migration**: Data migration utilities
 
 ### ✅ Reusable Components
 

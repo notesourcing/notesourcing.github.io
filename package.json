@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite",
     "dev-external": "vite --host",
-    "test": "vitest run --config vitest.config.js",
+    "test": "vitest",
+    "test:watch": "vitest --config vitest.config.js",
     "build": "vite build",
     "preview": "vite preview",
     "features": "code FEATURES.md",

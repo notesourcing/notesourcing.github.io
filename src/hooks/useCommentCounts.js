@@ -1,19 +1,22 @@
 import { useState, useEffect } from "react";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 
 // Custom hook to get comment counts for notes
 export function useCommentCounts(notes) {
   const [commentCounts, setCommentCounts] = useState({});
 
+  // Stringify notes to create a stable dependency for useEffect
+  const notesKey = JSON.stringify(notes);
+
   useEffect(() => {
-    if (!notes || notes.length === 0) {
+    const parsedNotes = JSON.parse(notesKey);
+    if (!parsedNotes || parsedNotes.length === 0) {
       setCommentCounts({});
       return;
     }
 
     // Use a single listener for all comments and filter client-side
-    // This avoids needing multiple Firestore indexes
     const commentsCollection = collection(db, "comments");
 
     const unsubscribe = onSnapshot(
@@ -25,7 +28,7 @@ export function useCommentCounts(notes) {
         }));
 
         const newCommentCounts = {};
-        notes.forEach((note) => {
+        parsedNotes.forEach((note) => {
           const commentCount = allComments.filter(
             (comment) =>
               comment.noteId === note.id && comment.noteType === note.type
@@ -43,7 +46,7 @@ export function useCommentCounts(notes) {
     return () => {
       unsubscribe();
     };
-  }, [notes]);
+  }, [notesKey]); // Use the stable stringified key as a dependency
 
   return commentCounts;
 }
