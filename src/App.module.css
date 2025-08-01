@@ -30,14 +30,14 @@
   border-bottom: 1px solid #e9ecef;
 }
 
-
 .logoContainer {
   display: flex;
   align-items: center;
   gap: 1.25rem;
 }
 
-.logo, .logoLink {
+.logo,
+.logoLink {
   font-size: 1.5rem;
   font-weight: 700;
   color: #007bff;
@@ -122,7 +122,8 @@
     gap: 1rem;
   }
 
-  .logo, .logoLink {
+  .logo,
+  .logoLink {
     font-size: 1.3rem;
   }
   .logoContainer {
@@ -161,7 +162,8 @@
     padding: 0.5rem;
   }
 
-  .logo, .logoLink {
+  .logo,
+  .logoLink {
     font-size: 1.2rem;
   }
   .logoContainer {

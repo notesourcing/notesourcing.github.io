@@ -100,32 +100,21 @@ export default function NewNoteForm({
 
       {/* Privacy Selector - only show for personal notes */}
       {!selectedCommunityId && (
-        <div className={styles.privacySelector}>
-          <label className={styles.label}>Privacy della nota:</label>
-          <div className={styles.privacyOptions}>
-            <label className={styles.radioLabel}>
-              <input
-                type="radio"
-                name="privacy"
-                value="public"
-                checked={!isPrivate}
-                onChange={() => setIsPrivate(false)}
-                className={styles.radioInput}
-              />
-              <span>🌍 Pubblica - Visibile a tutti gli utenti</span>
-            </label>
-            <label className={styles.radioLabel}>
-              <input
-                type="radio"
-                name="privacy"
-                value="private"
-                checked={isPrivate}
-                onChange={() => setIsPrivate(true)}
-                className={styles.radioInput}
-              />
-              <span>🔒 Privata - Visibile solo a te</span>
-            </label>
-          </div>
+        <div className={styles.privacySelectorCompact}>
+          <label className={styles.label} htmlFor="privacySelect">
+            Privacy della nota:
+          </label>
+          <select
+            id="privacySelect"
+            className={styles.selectCompact}
+            value={isPrivate ? "private" : "public"}
+            onChange={(e) => setIsPrivate(e.target.value === "private")}
+          >
+            <option value="public">
+              🌍 Pubblica - Visibile a tutti gli utenti
+            </option>
+            <option value="private">🔒 Privata - Visibile solo a te</option>
+          </select>
           {isPrivate && (
             <div className={styles.privacyInfo}>
               ℹ️ Le note private sono visibili solo a te e non compaiono nelle
@@ -136,137 +125,98 @@ export default function NewNoteForm({
       )}
 
       {/* Attribution Section */}
-      <div className={styles.attributionSection}>
-        <label className={styles.label}>Attribuire questa nota a:</label>
-        <div className={styles.attributionOptions}>
-          <div className={styles.radioGroup}>
-            <label className={styles.radioLabel}>
-              <input
-                type="radio"
-                name="attribution"
-                value="self"
-                checked={attributionType === "self"}
-                onChange={(e) => setAttributionType(e.target.value)}
-                className={styles.radioInput}
-              />
-              <span>👤 A me stesso/a</span>
-            </label>
-
-            <label className={styles.radioLabel}>
-              <input
-                type="radio"
-                name="attribution"
-                value="other"
-                checked={attributionType === "other"}
-                onChange={(e) => setAttributionType(e.target.value)}
-                className={styles.radioInput}
-              />
-              <span>👥 Ad un'altra persona</span>
-            </label>
-
-            <label className={styles.radioLabel}>
-              <input
-                type="radio"
-                name="attribution"
-                value="pseudonym"
-                checked={attributionType === "pseudonym"}
-                onChange={(e) => setAttributionType(e.target.value)}
-                className={styles.radioInput}
-              />
-              <span>🎭 Ad uno pseudonimo</span>
-            </label>
-
-            <label className={styles.radioLabel}>
-              <input
-                type="radio"
-                name="attribution"
-                value="eteronym"
-                checked={attributionType === "eteronym"}
-                onChange={(e) => setAttributionType(e.target.value)}
-                className={styles.radioInput}
-              />
-              <span>✍️ Ad un eteronimo</span>
-            </label>
-
-            <label className={styles.radioLabel}>
-              <input
-                type="radio"
-                name="attribution"
-                value="anonymous"
-                checked={attributionType === "anonymous"}
-                onChange={(e) => setAttributionType(e.target.value)}
-                className={styles.radioInput}
-              />
-              <span>❓ Anonima</span>
-            </label>
+      <div className={styles.attributionSectionCompact}>
+        <label className={styles.label} htmlFor="attributionSelect">
+          Attribuire questa nota a:
+        </label>
+        <select
+          id="attributionSelect"
+          className={styles.selectCompact}
+          value={attributionType}
+          onChange={(e) => setAttributionType(e.target.value)}
+        >
+          <option value="self">👤 A me stesso/a</option>
+          <option value="other">👥 Ad un'altra persona</option>
+          <option value="pseudonym">🎭 Ad uno pseudonimo</option>
+          <option value="eteronym">✍️ Ad un eteronimo</option>
+          <option value="anonymous">❓ Anonima</option>
+        </select>
+        {(attributionType === "other" ||
+          attributionType === "pseudonym" ||
+          attributionType === "eteronym") && (
+          <div className={styles.attributionNameFieldCompact}>
+            <input
+              type="text"
+              value={attributionName}
+              onChange={(e) => setAttributionName(e.target.value)}
+              placeholder={
+                attributionType === "other"
+                  ? "Nome della persona"
+                  : attributionType === "pseudonym"
+                  ? "Nome dello pseudonimo"
+                  : "Nome dell'eteronimo"
+              }
+              className={styles.inputCompact}
+              required
+            />
           </div>
-
-          {(attributionType === "other" ||
-            attributionType === "pseudonym" ||
-            attributionType === "eteronym") && (
-            <div className={styles.attributionNameField}>
-              <input
-                type="text"
-                value={attributionName}
-                onChange={(e) => setAttributionName(e.target.value)}
-                placeholder={
-                  attributionType === "other"
-                    ? "Nome della persona"
-                    : attributionType === "pseudonym"
-                    ? "Nome dello pseudonimo"
-                    : "Nome dell'eteronimo"
-                }
-                className={styles.input}
-                required
-              />
+        )}
+        {(attributionType === "pseudonym" || attributionType === "eteronym") &&
+          attributionName && (
+            <div className={styles.revealOptionCompact}>
+              <label className={styles.checkboxLabelCompact}>
+                <input
+                  type="checkbox"
+                  checked={revealPseudonym}
+                  onChange={(e) => setRevealPseudonym(e.target.checked)}
+                  className={styles.checkboxInputCompact}
+                />
+                <span>
+                  🔍 Rivelare che "{attributionName}" è un{" "}
+                  {attributionType === "pseudonym" ? "pseudonimo" : "eteronimo"}
+                </span>
+              </label>
             </div>
           )}
-
-          {(attributionType === "pseudonym" ||
-            attributionType === "eteronym") &&
-            attributionName && (
-              <div className={styles.revealOption}>
-                <label className={styles.checkboxLabel}>
-                  <input
-                    type="checkbox"
-                    checked={revealPseudonym}
-                    onChange={(e) => setRevealPseudonym(e.target.checked)}
-                    className={styles.checkboxInput}
-                  />
-                  <span>
-                    🔍 Rivelare che "{attributionName}" è un{" "}
-                    {attributionType === "pseudonym"
-                      ? "pseudonimo"
-                      : "eteronimo"}
-                  </span>
-                </label>
-              </div>
-            )}
-        </div>
       </div>
 
       {fields.map((field, index) => (
-        <div key={index} className={styles.field}>
-          <input
-            type="text"
-            value={field.name}
-            onChange={(e) => handleFieldChange(index, "name", e.target.value)}
-            placeholder="Nome campo (es. Titolo)"
-            className={styles.input}
-          />
-          <textarea
-            value={field.value}
-            onChange={(e) => handleFieldChange(index, "value", e.target.value)}
-            placeholder="Valore campo"
-            className={styles.textarea}
-          />
+        <div key={index} className={styles.fieldCard}>
           <button
             type="button"
             onClick={() => removeField(index)}
-            className={`${styles.button} ${styles.removeButton}`}
+            className={styles.removeButtonX}
+            title="Rimuovi campo"
           >
-            Rimuovi
+            ×
           </button>
+          <div className={styles.fieldContent}>
+            <div className={styles.fieldNameSection}>
+              <label className={styles.fieldLabelCompact}>Nome del campo</label>
+              <input
+                type="text"
+                value={field.name}
+                onChange={(e) =>
+                  handleFieldChange(index, "name", e.target.value)
+                }
+                placeholder="es. Titolo"
+                className={styles.inputCompact}
+              />
+            </div>
+            <div className={styles.fieldValueSection}>
+              <label className={styles.fieldLabelCompact}>
+                Valore del campo
+              </label>
+              <textarea
+                value={field.value}
+                onChange={(e) =>
+                  handleFieldChange(index, "value", e.target.value)
+                }
+                placeholder="Valore campo"
+                className={styles.textareaResizable}
+              />
+            </div>
+          </div>
         </div>
       ))}
       <div className={styles.buttonContainer}>

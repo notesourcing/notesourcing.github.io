@@ -1,8 +1,8 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
+  gap: 0.5rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.5rem;
   background-color: #f8f9fa;
   border-radius: 8px;
 }
@@ -10,7 +10,7 @@
 .communitySelector {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
 .label {
@@ -18,12 +18,14 @@
   color: #333;
 }
 
-.select {
-  padding: 0.75rem;
+.select,
+.selectCompact {
+  padding: 0.4rem 0.6rem;
   border: 1px solid #ccc;
   border-radius: 4px;
-  font-size: 1rem;
+  font-size: 0.98rem;
   background-color: white;
+  min-width: 220px;
 }
 
 .selectionInfo {
@@ -66,6 +68,28 @@
   border-radius: 4px;
   font-size: 1rem;
 }
+.inputCompact {
+  padding: 0.5rem;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-size: 0.98rem;
+  width: 100%;
+  font-family: inherit;
+}
+
+.inputCompact:focus {
+  border-color: #0969da;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+}
+.textareaCompact {
+  min-height: 40px;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.98rem;
+  resize: vertical;
+}
 
 .textarea {
   min-height: 80px;
@@ -75,15 +99,16 @@
 .buttonContainer {
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 
-.button {
-  padding: 0.5rem 1rem;
+.button,
+.buttonCompact {
+  padding: 0.35rem 0.7rem;
   border: none;
   border-radius: 4px;
-  font-size: 1rem;
+  font-size: 0.98rem;
   cursor: pointer;
   transition: background-color 0.2s;
 }
@@ -106,18 +131,165 @@
   background-color: #5a6268;
 }
 
-.removeButton {
+.removeButton,
+.removeButtonCompact {
   background-color: #dc3545;
   color: white;
   align-self: flex-start;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.8rem;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.85rem;
 }
 
 .addFieldButton {
   background-color: #e9ecef;
   color: #333;
   align-self: flex-start;
+}
+
+/* Compact field row/col/label */
+.fieldCompact {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.2rem;
+}
+
+/* Enhanced field card with border */
+.fieldCard {
+  position: relative;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.fieldCard:hover {
+  border-color: #b3d4fc;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.removeButtonX {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background-color: #f85149;
+  color: white;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 1;
+}
+
+.removeButtonX:hover {
+  background-color: #da3633;
+  transform: scale(1.1);
+}
+
+.fieldContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-right: 2rem; /* Space for the X button */
+}
+
+.fieldNameSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.fieldValueSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.textareaResizable {
+  min-height: 60px;
+  padding: 0.5rem;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-size: 0.98rem;
+  resize: vertical;
+  width: 100%;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.textareaResizable:focus {
+  border-color: #0969da;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+}
+
+.fieldRowCompact {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+.fieldColCompact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.fieldLabelCompact {
+  font-size: 0.85rem;
+  color: #555;
+  margin-bottom: 0.1rem;
+  font-weight: 500;
+}
+
+/* Compact privacy/attribution section */
+.privacySelectorCompact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+}
+.attributionSectionCompact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+}
+.attributionNameFieldCompact {
+  margin-top: 0.2rem;
+}
+.revealOptionCompact {
+  margin-top: 0.2rem;
+  padding: 0.5rem;
+  background-color: #fff3cd;
+  border-radius: 4px;
+  border-left: 3px solid #ffc107;
+}
+.checkboxLabelCompact {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #856404;
+}
+.checkboxInputCompact {
+  margin: 0;
+  cursor: pointer;
 }
 
 /* Attribution section styles */
