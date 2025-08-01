@@ -58,7 +58,7 @@ export default function Community() {
   const commentCounts = useCommentCounts(sharedNotes);
 
   useEffect(() => {
-    if (!user || !id) return;
+    if (!id) return;
 
     const fetchCommunityData = async () => {
       setLoading(true);
@@ -73,23 +73,30 @@ export default function Community() {
         const communityData = { id: communityDoc.id, ...communityDoc.data() };
         setCommunity(communityData);
 
-        // Check if user is a member
-        const isUserMember =
-          communityData.members && communityData.members.includes(user.uid);
-        setIsMember(isUserMember);
+        if (user) {
+          // Check if user is a member
+          const isUserMember =
+            communityData.members && communityData.members.includes(user.uid);
+          setIsMember(isUserMember);
 
-        // Check if user is the creator
-        setIsCreator(communityData.creatorId === user.uid);
+          // Check if user is the creator
+          setIsCreator(communityData.creatorId === user.uid);
 
-        // If not a member, check if user has already requested to join
-        if (!isUserMember) {
-          const joinRequestsQuery = query(
-            collection(db, "joinRequests"),
-            where("userId", "==", user.uid),
-            where("communityId", "==", id)
-          );
-          const joinRequestsSnapshot = await getDocs(joinRequestsQuery);
-          setHasRequestedJoin(!joinRequestsSnapshot.empty);
+          // If not a member, check if user has already requested to join
+          if (!isUserMember) {
+            const joinRequestsQuery = query(
+              collection(db, "joinRequests"),
+              where("userId", "==", user.uid),
+              where("communityId", "==", id)
+            );
+            const joinRequestsSnapshot = await getDocs(joinRequestsQuery);
+            setHasRequestedJoin(!joinRequestsSnapshot.empty);
+          }
+        } else {
+          // For unauthenticated users
+          setIsMember(false);
+          setIsCreator(false);
+          setHasRequestedJoin(false);
         }
 
         setLoading(false);
@@ -103,15 +110,16 @@ export default function Community() {
     fetchCommunityData();
   }, [id, user]);
 
-  // Separate useEffect for fetching notes - runs after community data is loaded
+  // Fetch notes based on community visibility and user authentication
   useEffect(() => {
-    if (!community || !user) return;
+    if (!community) return;
 
-    // Fetch notes based on community visibility and user membership
-    const shouldFetchNotes =
-      isMember || community.visibility === "public" || !community.visibility; // Default to public for existing communities
+    // Determine if user should see notes
+    const canViewNotes = user
+      ? isMember || community.visibility === "public" || !community.visibility // Authenticated users: members OR public communities
+      : community.visibility === "public" || !community.visibility; // Unauthenticated users: only public communities
 
-    if (shouldFetchNotes) {
+    if (canViewNotes) {
       const notesQuery = query(
         collection(db, "sharedNotes"),
         where("communityId", "==", id),
@@ -141,7 +149,7 @@ export default function Community() {
 
       return () => unsubscribe();
     } else {
-      // Clear notes for private/hidden communities when user is not a member
+      // Clear notes for private/hidden communities when access is not allowed
       setSharedNotes([]);
     }
   }, [community, isMember, user, id]);
@@ -513,17 +521,39 @@ export default function Community() {
       {!isMember && (
         <div className={styles.joinRequest}>
           <p className={styles.notMemberMessage}>
-            Non sei membro di questa community.
-            {community.visibility === "public" &&
-              " Puoi vedere le note ma devi unirti per contribuire."}
-            {community.visibility === "private" &&
-              " Richiedi l'adesione per vedere e contribuire alle note."}
-            {community.visibility === "hidden" &&
-              " Questa è una community nascosta - richiedi l'adesione per accedere."}
-            {!community.visibility &&
-              " Puoi vedere le note ma devi unirti per contribuire."}
+            {!user ? (
+              <>
+                {community.visibility === "public" &&
+                  "Stai visualizzando una community pubblica. Effettua il login per unirti e contribuire."}
+                {community.visibility === "private" &&
+                  "Questa è una community privata. Effettua il login per richiedere l'adesione."}
+                {community.visibility === "hidden" &&
+                  "Questa è una community nascosta. Effettua il login per richiedere l'adesione."}
+                {!community.visibility &&
+                  "Stai visualizzando una community pubblica. Effettua il login per unirti e contribuire."}
+              </>
+            ) : (
+              <>
+                Non sei membro di questa community.
+                {community.visibility === "public" &&
+                  " Puoi vedere le note ma devi unirti per contribuire."}
+                {community.visibility === "private" &&
+                  " Richiedi l'adesione per vedere e contribuire alle note."}
+                {community.visibility === "hidden" &&
+                  " Questa è una community nascosta - richiedi l'adesione per accedere."}
+                {!community.visibility &&
+                  " Puoi vedere le note ma devi unirti per contribuire."}
+              </>
+            )}
           </p>
-          {hasRequestedJoin ? (
+          {!user ? (
+            <button
+              className={styles.joinButton}
+              onClick={() => navigate("/login")}
+            >
+              Accedi per partecipare
+            </button>
+          ) : hasRequestedJoin ? (
             <p className={styles.pendingMessage}>
               La tua richiesta di adesione è in attesa di approvazione.
             </p>
@@ -572,14 +602,22 @@ export default function Community() {
         </>
       )}
 
-      {/* Notes display - show for members OR for public communities */}
-      {(isMember ||
-        community.visibility === "public" ||
-        !community.visibility) && (
+      {/* Notes display - show notes based on user authentication and community visibility */}
+      {(() => {
+        const isPublicCommunity =
+          community.visibility === "public" || !community.visibility;
+
+        // Show notes if:
+        // 1. User is authenticated and is a member, OR
+        // 2. Community is public (regardless of authentication status)
+        const shouldDisplayNotes = (user && isMember) || isPublicCommunity;
+
+        return shouldDisplayNotes;
+      })() && (
         <div className={styles.notesGrid}>
           {sharedNotes.length === 0 ? (
             <p className={styles.emptyNotes}>
-              {isMember
+              {user && isMember
                 ? "Nessuna nota ancora. Sii il primo a condividerne una!"
                 : "Non ci sono ancora note in questa community."}
             </p>

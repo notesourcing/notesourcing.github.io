@@ -47,19 +47,25 @@ export default function Home() {
   useEffect(() => {
     let combinedNotes = [...personalNotes, ...sharedNotes];
 
-    // Apply filtering
-    if (filterType === "my") {
-      combinedNotes = combinedNotes.filter(
-        (note) =>
-          (note.type === "personal" && note.uid === user?.uid) ||
-          (note.type === "shared" && note.authorId === user?.uid)
-      );
-    } else if (filterType === "personal") {
-      combinedNotes = personalNotes;
-    } else if (filterType === "shared") {
-      combinedNotes = sharedNotes;
+    // Apply filtering based on user authentication and filter type
+    if (user) {
+      // Authenticated user filtering
+      if (filterType === "my") {
+        combinedNotes = combinedNotes.filter(
+          (note) =>
+            (note.type === "personal" && note.uid === user?.uid) ||
+            (note.type === "shared" && note.authorId === user?.uid)
+        );
+      } else if (filterType === "personal") {
+        combinedNotes = personalNotes;
+      } else if (filterType === "shared") {
+        combinedNotes = sharedNotes;
+      }
+      // "all" shows everything (default)
+    } else {
+      // Unauthenticated user - only show shared notes from public communities
+      combinedNotes = sharedNotes; // Already filtered in the data fetching
     }
-    // "all" shows everything (default)
 
     combinedNotes.sort((a, b) => {
       const dateA = a.created?.toDate ? a.created.toDate() : new Date(0);
@@ -71,44 +77,50 @@ export default function Home() {
   }, [personalNotes, sharedNotes, filterType, user]);
 
   useEffect(() => {
-    if (!user || !user.uid) {
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setError("");
 
-    // Set up real-time listener for user's personal notes
-    const personalNotesQuery = query(
-      collection(db, "notes"),
-      where("uid", "==", user.uid),
-      orderBy("created", "desc")
-    );
-    const unsubPersonalNotes = onSnapshot(
-      personalNotesQuery,
-      async (snapshot) => {
-        try {
-          const rawNotes = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-            type: "personal",
-          }));
+    // Set up real-time listener for user's personal notes (only if user is logged in)
+    let unsubPersonalNotes = () => {};
+    if (user && user.uid) {
+      const personalNotesQuery = query(
+        collection(db, "notes"),
+        where("uid", "==", user.uid),
+        orderBy("created", "desc")
+      );
+      unsubPersonalNotes = onSnapshot(
+        personalNotesQuery,
+        async (snapshot) => {
+          try {
+            const rawNotes = snapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+              type: "personal",
+            }));
 
-          // Enrich with user display data
-          const enrichedNotes = await enrichNotesWithUserData(rawNotes, "uid");
-          setPersonalNotes(enrichedNotes);
-        } catch (err) {
-          console.error("Error processing personal notes:", err);
+            // Enrich with user display data
+            const enrichedNotes = await enrichNotesWithUserData(
+              rawNotes,
+              "uid"
+            );
+            setPersonalNotes(enrichedNotes);
+          } catch (err) {
+            console.error("Error processing personal notes:", err);
+            setError("Errore nel caricamento delle note personali.");
+          }
+        },
+        (err) => {
+          console.error("Error with personal notes listener:", err);
           setError("Errore nel caricamento delle note personali.");
         }
-      },
-      (err) => {
-        console.error("Error with personal notes listener:", err);
-        setError("Errore nel caricamento delle note personali.");
-      }
-    );
+      );
+    } else {
+      // Clear personal notes if user is not logged in
+      setPersonalNotes([]);
+    }
 
     // Set up real-time listener for ALL shared notes (community notes)
+    // For unauthenticated users, we'll filter to only public communities later
     const sharedNotesQuery = query(
       collection(db, "sharedNotes"),
       orderBy("created", "desc")
@@ -131,25 +143,42 @@ export default function Home() {
                 "authorId"
               );
 
-              // Also fetch community name
+              // Also fetch community name and visibility
               let communityName = "Comunità Sconosciuta";
+              let communityVisibility = "public"; // default to public
               if (noteData.communityId) {
                 try {
                   const communityDocSnap = await getDoc(
                     doc(db, "communities", noteData.communityId)
                   );
                   if (communityDocSnap.exists()) {
-                    communityName = communityDocSnap.data().name;
+                    const communityData = communityDocSnap.data();
+                    communityName = communityData.name;
+                    communityVisibility = communityData.visibility || "public";
                   }
                 } catch (err) {
                   console.log("Could not fetch community name:", err);
                 }
               }
 
-              return { ...enrichedNote[0], communityName };
+              return {
+                ...enrichedNote[0],
+                communityName,
+                communityVisibility,
+              };
             })
           );
-          setSharedNotes(notes);
+
+          // Filter notes based on user authentication and community visibility
+          let filteredNotes = notes;
+          if (!user) {
+            // For unauthenticated users, only show notes from public communities
+            filteredNotes = notes.filter((note) => {
+              return note.communityVisibility === "public";
+            });
+          }
+
+          setSharedNotes(filteredNotes);
         } catch (err) {
           console.error("Error processing shared notes:", err);
           setError("Errore nel caricamento delle note condivise.");
@@ -363,33 +392,15 @@ export default function Home() {
         </div>
       )}
 
-      {/* Stats */}
-      {allNotes.length > 0 && (
-        <div className={styles.stats}>
-          <div className={styles.stat}>
-            <span className={styles.statNumber}>{allNotes.length}</span>
-            <span className={styles.statLabel}>Note Mostrate</span>
-          </div>
-          <div className={styles.stat}>
-            <span className={styles.statNumber}>
-              {allNotes.filter((note) => note.type === "shared").length}
-            </span>
-            <span className={styles.statLabel}>Note Community</span>
-          </div>
-          <div className={styles.stat}>
-            <span className={styles.statNumber}>
-              {allNotes.filter((note) => note.type === "personal").length}
-            </span>
-            <span className={styles.statLabel}>Note Personali</span>
-          </div>
-        </div>
-      )}
-
+      {/* Welcome message for unauthenticated users */}
       {!user && (
-        <div className={styles.loginPrompt}>
-          <div className={styles.noNotes}>
+        <div className={styles.welcomeMessage}>
+          <div className={styles.welcomeContent}>
             <h3>🌟 Benvenuto nella community!</h3>
-            <p>Accedi per vedere tutte le note e iniziare a contribuire.</p>
+            <p>
+              Stai visualizzando le note pubbliche della community. Accedi per
+              vedere tutte le note e iniziare a contribuire.
+            </p>
             <Link to="/login" className={styles.loginButton}>
               🔑 Accedi per iniziare
             </Link>
@@ -397,21 +408,63 @@ export default function Home() {
         </div>
       )}
 
-      {user && allNotes.length === 0 && (
-        <div className={styles.noNotes}>
-          <h3>📝 Nessuna nota trovata</h3>
-          <p>
-            {filterType === "my" && "Non hai ancora creato alcuna nota."}
-            {filterType === "personal" && "Non hai note personali."}
-            {filterType === "shared" &&
-              "Non ci sono note della community accessibili."}
-            {filterType === "all" && "Non ci sono ancora note da visualizzare."}
-          </p>
-          <p>Inizia creando la tua prima nota!</p>
+      {/* Stats - show different stats for unauthenticated users */}
+      {allNotes.length > 0 && (
+        <div className={styles.stats}>
+          <div className={styles.stat}>
+            <span className={styles.statNumber}>{allNotes.length}</span>
+            <span className={styles.statLabel}>
+              {user ? "Note Mostrate" : "Note Pubbliche"}
+            </span>
+          </div>
+          {user && (
+            <>
+              <div className={styles.stat}>
+                <span className={styles.statNumber}>
+                  {allNotes.filter((note) => note.type === "shared").length}
+                </span>
+                <span className={styles.statLabel}>Note Community</span>
+              </div>
+              <div className={styles.stat}>
+                <span className={styles.statNumber}>
+                  {allNotes.filter((note) => note.type === "personal").length}
+                </span>
+                <span className={styles.statLabel}>Note Personali</span>
+              </div>
+            </>
+          )}
         </div>
       )}
 
-      {user && allNotes.length > 0 && (
+      {allNotes.length === 0 && (
+        <div className={styles.noNotes}>
+          {user ? (
+            <>
+              <h3>📝 Nessuna nota trovata</h3>
+              <p>
+                {filterType === "my" && "Non hai ancora creato alcuna nota."}
+                {filterType === "personal" && "Non hai note personali."}
+                {filterType === "shared" &&
+                  "Non ci sono note della community accessibili."}
+                {filterType === "all" &&
+                  "Non ci sono ancora note da visualizzare."}
+              </p>
+              <p>Inizia creando la tua prima nota!</p>
+            </>
+          ) : (
+            <>
+              <h3>📝 Nessuna nota pubblica disponibile</h3>
+              <p>Al momento non ci sono note pubbliche da visualizzare.</p>
+              <p>Accedi per vedere tutte le note e iniziare a contribuire!</p>
+              <Link to="/login" className={styles.loginButton}>
+                🔑 Accedi ora
+              </Link>
+            </>
+          )}
+        </div>
+      )}
+
+      {allNotes.length > 0 && (
         <ul className={styles.notesList}>
           {allNotes.map((note) => (
             <li key={note.id} className={styles.noteItem}>
@@ -419,14 +472,16 @@ export default function Home() {
                 note={note}
                 user={user}
                 isSuperAdmin={isSuperAdmin}
-                onReaction={handleReaction}
-                onDelete={handleDeleteNote}
+                onReaction={user ? handleReaction : undefined}
+                onDelete={user ? handleDeleteNote : undefined}
                 availableReactions={availableReactions}
                 showDeleteButton={
-                  isSuperAdmin ||
-                  (note.type === "personal" && note.uid === user.uid) ||
-                  (note.type === "shared" && note.authorId === user.uid)
+                  user &&
+                  (isSuperAdmin ||
+                    (note.type === "personal" && note.uid === user.uid) ||
+                    (note.type === "shared" && note.authorId === user.uid))
                 }
+                showReactions={!!user} // Only show reactions for logged-in users
                 commentCount={commentCounts[note.id] || 0}
               />
             </li>

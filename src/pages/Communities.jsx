@@ -157,15 +157,15 @@ export default function Communities() {
           setUserCommunities(memberComms);
           setOtherCommunities(otherComms);
         } else {
-          // For non-logged users, show only public communities
-          const publicCommunities = communitiesData.filter((community) => {
+          // For non-logged users, show public and private communities (but not hidden)
+          const visibleCommunities = communitiesData.filter((community) => {
             const visibility = community.visibility || "public";
-            return visibility === "public";
+            return visibility === "public" || visibility === "private";
           });
 
           setAdminCommunities([]);
           setUserCommunities([]);
-          setOtherCommunities(publicCommunities);
+          setOtherCommunities(visibleCommunities);
         }
         setLoading(false);
       } catch (err) {
