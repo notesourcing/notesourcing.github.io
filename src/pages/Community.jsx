@@ -24,7 +24,11 @@ import {
   arrayRemove,
   serverTimestamp,
 } from "firebase/firestore";
-import { enrichNotesWithUserData } from "../utils/userUtils";
+import {
+  enrichNotesWithUserData,
+  enrichNoteWithUserData,
+  formatUserDisplayName,
+} from "../utils/userUtils";
 import NewNoteForm from "../components/NewNoteForm";
 import NoteCard from "../components/NoteCard";
 import JoinRequestManager from "../components/JoinRequestManager";
@@ -71,7 +75,25 @@ export default function Community() {
         }
 
         const communityData = { id: communityDoc.id, ...communityDoc.data() };
-        setCommunity(communityData);
+
+        // Enrich community with creator display data
+        try {
+          const enrichedCommunity = await enrichNoteWithUserData(
+            communityData,
+            "creatorId"
+          );
+          const communityWithCreator = {
+            ...enrichedCommunity,
+            creatorDisplayName: formatUserDisplayName(enrichedCommunity),
+          };
+          setCommunity(communityWithCreator);
+        } catch (err) {
+          console.error("Error enriching community creator data:", err);
+          setCommunity({
+            ...communityData,
+            creatorDisplayName: "Creatore Sconosciuto",
+          });
+        }
 
         if (user) {
           // Check if user is a member
@@ -437,6 +459,12 @@ export default function Community() {
       <div className={styles.header}>
         <div className={styles.titleSection}>
           <h1 className={styles.title}>{community.name}</h1>
+          <div className={styles.creatorInfo}>
+            <span className={styles.creatorLabel}>👑 Creata da:</span>
+            <span className={styles.creatorName}>
+              {community.creatorDisplayName || "Creatore Sconosciuto"}
+            </span>
+          </div>
           <div className={styles.visibilityBadge}>
             {community.visibility === "public" && (
               <span className={styles.publicBadge}>🌍 Pubblica</span>
@@ -505,6 +533,12 @@ export default function Community() {
               {community.created?.toDate
                 ? community.created.toDate().toLocaleDateString("it-IT")
                 : "N/A"}
+            </span>
+          </div>
+          <div className={styles.statCard}>
+            <span className={styles.statLabel}>Creatore</span>
+            <span className={styles.statDate}>
+              {community.creatorDisplayName || "Sconosciuto"}
             </span>
           </div>
           <div className={styles.statCard}>

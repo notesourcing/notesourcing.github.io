@@ -24,6 +24,28 @@
   margin: 0;
 }
 
+.creatorInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.creatorLabel {
+  font-weight: 600;
+  color: #555;
+}
+
+.creatorName {
+  color: #333;
+  font-weight: 500;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
 .visibilityBadge {
   display: flex;
   gap: 0.5rem;

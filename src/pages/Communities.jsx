@@ -12,6 +12,10 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 import { AuthContext } from "../App";
+import {
+  enrichNoteWithUserData,
+  formatUserDisplayName,
+} from "../utils/userUtils";
 import styles from "./Communities.module.css";
 
 export default function Communities() {
@@ -183,11 +187,36 @@ export default function Communities() {
 
     const unsubscribeCommunities = onSnapshot(
       communitiesQuery,
-      (communitiesSnapshot) => {
-        allCommunities = communitiesSnapshot.docs.map((doc) => ({
+      async (communitiesSnapshot) => {
+        // Get raw community data
+        const rawCommunities = communitiesSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
+
+        // Enrich communities with creator display data
+        const enrichedCommunities = await Promise.all(
+          rawCommunities.map(async (community) => {
+            try {
+              const enrichedCommunity = await enrichNoteWithUserData(
+                community,
+                "creatorId"
+              );
+              return {
+                ...enrichedCommunity,
+                creatorDisplayName: formatUserDisplayName(enrichedCommunity),
+              };
+            } catch (err) {
+              console.error("Error enriching community creator data:", err);
+              return {
+                ...community,
+                creatorDisplayName: "Creatore Sconosciuto",
+              };
+            }
+          })
+        );
+
+        allCommunities = enrichedCommunities;
         updateCommunityStats();
       },
       (err) => {
@@ -323,6 +352,13 @@ export default function Communities() {
                 <span className={styles.memberBadge}>👤 Membro</span>
               )}
             </div>
+          </div>
+
+          <div className={styles.creatorInfo}>
+            <span className={styles.creatorLabel}>Creata da:</span>
+            <span className={styles.creatorName}>
+              {community.creatorDisplayName || "Creatore Sconosciuto"}
+            </span>
           </div>
 
           <p className={styles.communityDescription}>
