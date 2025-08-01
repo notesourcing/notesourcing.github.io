@@ -30,14 +30,22 @@
   border-bottom: 1px solid #e9ecef;
 }
 
-.logo,
+
 .logoContainer {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.logo, .logoLink {
   font-size: 1.5rem;
   font-weight: 700;
   color: #007bff;
   text-decoration: none;
   transition: all 0.3s ease;
   padding: 0.5rem 0;
+  display: flex;
+  align-items: center;
 }
 
 .logo:hover,
@@ -114,9 +122,11 @@
     gap: 1rem;
   }
 
-  .logo,
-  .logoContainer {
+  .logo, .logoLink {
     font-size: 1.3rem;
+  }
+  .logoContainer {
+    gap: 0.75rem;
   }
 
   .nav {
@@ -151,9 +161,11 @@
     padding: 0.5rem;
   }
 
-  .logo,
-  .logoContainer {
+  .logo, .logoLink {
     font-size: 1.2rem;
+  }
+  .logoContainer {
+    gap: 0.5rem;
   }
 
   .nav {

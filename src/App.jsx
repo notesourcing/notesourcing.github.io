@@ -56,13 +56,16 @@ function Layout() {
   return (
     <div className={styles.app}>
       <header className={styles.header}>
-        <Link
-          to="/landing"
-          className={styles.logoContainer}
-          title={`Pagina principale di ${getAppName()}`}
-        >
-          <Logo size="medium" showText={true} />
-        </Link>
+        <div className={styles.logoContainer}>
+          <Link
+            to="/landing"
+            title={`Pagina principale di ${getAppName()}`}
+            className={styles.logoLink}
+          >
+            <Logo size="medium" showText={true} />
+          </Link>
+          <LanguageSwitcher />
+        </div>
         <nav className={styles.nav}>
           <Link
             to="/"
@@ -125,7 +128,6 @@ function Layout() {
               🔑 {t("login")}
             </Link>
           )}
-          <LanguageSwitcher />
         </nav>
       </header>
       <main className={styles.mainContent}>
