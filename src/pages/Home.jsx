@@ -531,10 +531,10 @@ export default function Home() {
       {!user && (
         <div className={styles.welcomeMessage}>
           <div className={styles.welcomeContent}>
-            <h3>🌟 Benvenuto nella community!</h3>
+            <h3>🌟 Benvenuto!</h3>
             <p>
-              Stai visualizzando le note pubbliche della community. Accedi per
-              vedere tutte le note e iniziare a contribuire.
+              Stai visualizzando le note pubbliche. Accedi per vedere tutte le
+              note e iniziare a contribuire.
             </p>
             <Link to="/login" className={styles.loginButton}>
               🔑 Accedi per iniziare
