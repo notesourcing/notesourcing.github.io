@@ -13,6 +13,11 @@ import {
   getFirebaseIdFromSequential,
   getSequentialIdFromFirebase,
 } from "../utils/sequentialIds";
+import {
+  enrichNoteWithUserData,
+  formatUserDisplayName,
+  getUserCommunityCustomNames,
+} from "../utils/userUtils";
 import Comments from "../components/Comments";
 import styles from "./Note.module.css";
 
@@ -25,6 +30,7 @@ export default function Note() {
   const [note, setNote] = useState(null);
   const [noteId, setNoteId] = useState(null); // Firebase document ID
   const [communitySequentialId, setCommunitySequentialId] = useState(null); // Community sequential ID for back navigation
+  const [noteAuthorData, setNoteAuthorData] = useState(null); // Author's user data for attribution
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editFields, setEditFields] = useState([]);
@@ -176,7 +182,26 @@ export default function Note() {
         if (noteData) {
           // Notes are publicly viewable (as seen in Home page)
           // Only editing should be restricted to authors
-          setNote(noteData);
+
+          // Enrich note with author's user data for proper attribution
+          let enrichedNote = noteData;
+          try {
+            const userIdField = noteData.type === "shared" ? "authorId" : "uid";
+            enrichedNote = await enrichNoteWithUserData(noteData, userIdField);
+
+            // Fetch author's community custom names if this is a community note
+            if (noteData.communityId && enrichedNote[userIdField]) {
+              const authorCommunityCustomNames =
+                await getUserCommunityCustomNames(enrichedNote[userIdField]);
+              setNoteAuthorData({
+                communityCustomNames: authorCommunityCustomNames,
+              });
+            }
+          } catch (error) {
+            console.warn("Could not enrich note with user data:", error);
+          }
+
+          setNote(enrichedNote);
 
           // Fetch community sequential ID if this is a shared note with a community
           if (noteData.type === "shared" && noteData.communityId) {
@@ -301,10 +326,8 @@ export default function Note() {
 
   const formatAttribution = (note) => {
     if (!note.attribution) {
-      // Fallback for notes without attribution
-      return (
-        note.authorEmail?.split("@")[0] || note.uid || "Utente sconosciuto"
-      );
+      // Fallback for notes without attribution - use the note author's data
+      return formatUserDisplayName(note, note.communityId, noteAuthorData);
     }
 
     const { type, name, revealPseudonym } = note.attribution;
@@ -343,10 +366,8 @@ export default function Note() {
             return user.email.split("@")[0];
           }
         }
-        // Otherwise fall back to note data
-        return (
-          note.authorEmail?.split("@")[0] || note.uid || "Utente sconosciuto"
-        );
+        // For other users' notes with self attribution, use the note author's data
+        return formatUserDisplayName(note, note.communityId, noteAuthorData);
       case "other":
         return name || "Persona sconosciuta";
       case "pseudonym":

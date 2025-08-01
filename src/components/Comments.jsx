@@ -13,12 +13,18 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { AuthContext } from "../App";
+import {
+  enrichNotesWithUserData,
+  formatUserDisplayName,
+  getUserCommunityCustomNames,
+} from "../utils/userUtils";
 import styles from "./Comments.module.css";
 
 export default function Comments({ noteId, noteType, communityId }) {
   const { user, userDisplayName, userCommunityCustomNames } =
     useContext(AuthContext);
   const [comments, setComments] = useState([]);
+  const [commentAuthorsData, setCommentAuthorsData] = useState({}); // Store authors' user data keyed by authorId
   const [newComment, setNewComment] = useState("");
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState("");
@@ -73,6 +79,10 @@ export default function Comments({ noteId, noteType, communityId }) {
           const dateB = b.created?.toDate ? b.created.toDate() : new Date(0);
           return dateA - dateB;
         });
+
+        // Enrich comments with user data and fetch authors' community custom names
+        enrichCommentsWithUserData(filteredComments);
+
         setComments(filteredComments);
         setError(""); // Clear any previous errors
       },
@@ -158,6 +168,52 @@ export default function Comments({ noteId, noteType, communityId }) {
     });
   };
 
+  // Function to enrich comments with user data
+  const enrichCommentsWithUserData = async (comments) => {
+    try {
+      // Get unique author IDs
+      const authorIds = [
+        ...new Set(comments.map((comment) => comment.authorId).filter(Boolean)),
+      ];
+
+      // Fetch user data for all authors
+      const authorsData = {};
+      await Promise.all(
+        authorIds.map(async (authorId) => {
+          try {
+            // Enrich a dummy comment to get author data
+            const enrichedComment = await enrichNotesWithUserData(
+              [{ authorId }],
+              "authorId"
+            );
+            if (enrichedComment && enrichedComment[0]) {
+              const authorData = {
+                authorEmail: enrichedComment[0].authorEmail,
+                authorDisplayName: enrichedComment[0].authorDisplayName,
+              };
+
+              // Fetch community custom names if this is a community
+              if (communityId) {
+                const communityCustomNames = await getUserCommunityCustomNames(
+                  authorId
+                );
+                authorData.communityCustomNames = communityCustomNames;
+              }
+
+              authorsData[authorId] = authorData;
+            }
+          } catch (error) {
+            console.warn(`Could not fetch data for author ${authorId}:`, error);
+          }
+        })
+      );
+
+      setCommentAuthorsData(authorsData);
+    } catch (error) {
+      console.warn("Could not enrich comments with user data:", error);
+    }
+  };
+
   const formatUserName = (comment) => {
     // If this is the current user's comment, use their display names
     if (comment.authorId === user?.uid) {
@@ -177,8 +233,23 @@ export default function Comments({ noteId, noteType, communityId }) {
       }
     }
 
-    // For other users' comments, use their email username
-    // Note: In the future, this could be enhanced to fetch other users' display names
+    // For other users' comments, use their enriched data
+    const authorData = commentAuthorsData[comment.authorId];
+    if (authorData) {
+      // Create a mock note object for the formatUserDisplayName function
+      const mockNote = {
+        authorEmail: authorData.authorEmail,
+        authorDisplayName: authorData.authorDisplayName,
+      };
+
+      const mockUserData = {
+        communityCustomNames: authorData.communityCustomNames || {},
+      };
+
+      return formatUserDisplayName(mockNote, communityId, mockUserData);
+    }
+
+    // Fallback to comment data
     if (comment.authorEmail) {
       return comment.authorEmail.split("@")[0];
     }
