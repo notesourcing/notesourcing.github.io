@@ -339,6 +339,33 @@ export default function Note() {
     }
   };
 
+  // Determine the appropriate back link
+  const getBackLink = () => {
+    // Check if this is a shared note with a community
+    if (note?.type === "shared" && note?.communityId) {
+      // Check if user came from a community page
+      const referrer = document.referrer;
+      const fromCommunity =
+        referrer.includes(`/community/${note.communityId}`) ||
+        location.state?.fromCommunity;
+
+      if (fromCommunity) {
+        return {
+          to: `/community/${note.communityId}`,
+          text: "← Torna alla Community",
+        };
+      }
+    }
+
+    // Default back to all notes
+    return {
+      to: "/",
+      text: "← Torna alle Note",
+    };
+  };
+
+  const backLink = getBackLink();
+
   if (loading) {
     return <div className={styles.loading}>Caricamento nota...</div>;
   }
@@ -347,8 +374,8 @@ export default function Note() {
     return (
       <div className={styles.container}>
         <p className={styles.error}>{error}</p>
-        <Link to="/" className={styles.backLink}>
-          ← Torna alle Note
+        <Link to={backLink.to} className={styles.backLink}>
+          {backLink.text}
         </Link>
       </div>
     );
@@ -364,8 +391,8 @@ export default function Note() {
         <h1 className={styles.title}>
           {editing ? "Modifica Nota" : "Dettaglio Nota"}
         </h1>
-        <Link to="/" className={styles.backLink}>
-          ← Torna alle Note
+        <Link to={backLink.to} className={styles.backLink}>
+          {backLink.text}
         </Link>
       </div>
 

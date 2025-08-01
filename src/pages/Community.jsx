@@ -891,6 +891,7 @@ export default function Community() {
                 onDelete={handleDeleteSharedNote}
                 availableReactions={availableReactions}
                 commentCount={commentCounts[note.id] || 0}
+                fromCommunity={true}
               />
             ))
           )}

@@ -15,6 +15,7 @@ export default function NoteCard({
   showReactions = true,
   showDeleteButton = true,
   commentCount = 0,
+  fromCommunity = false,
 }) {
   const { userDisplayName, userCommunityCustomNames } = useContext(AuthContext);
   const canDelete = () => {
@@ -117,6 +118,7 @@ export default function NoteCard({
             ? `/shared-note/${note.sequentialId || note.id}`
             : `/note/${note.sequentialId || note.id}`
         }
+        state={{ fromCommunity: fromCommunity }}
         className={styles.noteLink}
       >
         <div className={styles.noteContent}>
