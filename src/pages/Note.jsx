@@ -40,7 +40,12 @@ export default function Note() {
 
   // Fetch user's community custom names
   useEffect(() => {
-    if (!user || !sequentialId) return;
+    if (!sequentialId) return;
+
+    // For shared notes, allow anonymous access
+    // For personal notes, require user to be logged in
+    const isSharedNoteRoute = location.pathname.startsWith("/shared-note");
+    if (!isSharedNoteRoute && !user) return;
 
     const fetchNote = async () => {
       setLoading(true);
@@ -209,7 +214,7 @@ export default function Note() {
     };
 
     fetchNote();
-  }, [user, sequentialId]);
+  }, [user, sequentialId, location.pathname]);
 
   const handleSave = async () => {
     if (!canEditNote()) {
@@ -309,7 +314,10 @@ export default function Note() {
         // For self attribution, use current user's display names if this is the user's own note
         if (note.type === "personal" && note.uid === user?.uid) {
           // Priority: 1. Community custom name, 2. Profile display name, 3. Email username
-          if (note.communityId && userCommunityCustomNames[note.communityId]) {
+          if (
+            note.communityId &&
+            userCommunityCustomNames?.[note.communityId]
+          ) {
             return userCommunityCustomNames[note.communityId];
           }
           if (userDisplayName) {
@@ -322,7 +330,10 @@ export default function Note() {
         // For shared notes, check if current user is the author
         if (note.type === "shared" && note.authorId === user?.uid) {
           // Priority: 1. Community custom name, 2. Profile display name, 3. Email username
-          if (note.communityId && userCommunityCustomNames[note.communityId]) {
+          if (
+            note.communityId &&
+            userCommunityCustomNames?.[note.communityId]
+          ) {
             return userCommunityCustomNames[note.communityId];
           }
           if (userDisplayName) {

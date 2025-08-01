@@ -4,3 +4,6 @@ push:
 	git push origin main
 	git push galuy main
 	git push rivelazioni main
+
+e:
+	npm run dev-external
