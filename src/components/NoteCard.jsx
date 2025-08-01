@@ -16,7 +16,7 @@ export default function NoteCard({
   showDeleteButton = true,
   commentCount = 0,
 }) {
-  const { userDisplayName } = useContext(AuthContext);
+  const { userDisplayName, userCommunityCustomNames } = useContext(AuthContext);
   const canDelete = () => {
     if (isSuperAdmin) return true;
     if (note.type === "personal" && note.uid === user?.uid) return true;
@@ -49,8 +49,8 @@ export default function NoteCard({
         // For self attribution, use current user's display names if this is the user's own note
         if (note.type === "personal" && note.uid === user?.uid) {
           // Priority: 1. Community custom name, 2. Profile display name, 3. Email username
-          if (note.communityId && note.communityDisplayName) {
-            return note.communityDisplayName;
+          if (note.communityId && userCommunityCustomNames[note.communityId]) {
+            return userCommunityCustomNames[note.communityId];
           }
           if (userDisplayName) {
             return userDisplayName;
@@ -62,8 +62,8 @@ export default function NoteCard({
         // For shared notes, check if current user is the author
         if (note.type === "shared" && note.authorId === user?.uid) {
           // Priority: 1. Community custom name, 2. Profile display name, 3. Email username
-          if (note.communityId && note.communityDisplayName) {
-            return note.communityDisplayName;
+          if (note.communityId && userCommunityCustomNames[note.communityId]) {
+            return userCommunityCustomNames[note.communityId];
           }
           if (userDisplayName) {
             return userDisplayName;

@@ -148,6 +148,7 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [userDisplayName, setUserDisplayName] = useState(null);
+  const [userCommunityCustomNames, setUserCommunityCustomNames] = useState({});
   const [loading, setLoading] = useState(true);
 
   // Update document title with app name
@@ -167,8 +168,10 @@ function App() {
           );
           setIsSuperAdmin(userData.role === "superadmin");
           setUserDisplayName(userData.displayName || null);
+          setUserCommunityCustomNames(userData.communityCustomNames || {});
         } else {
           setUserDisplayName(null);
+          setUserCommunityCustomNames({});
         }
         setUser(u);
 
@@ -182,6 +185,7 @@ function App() {
         setIsAdmin(false);
         setIsSuperAdmin(false);
         setUserDisplayName(null);
+        setUserCommunityCustomNames({});
 
         // Clear from feature monitor
         if (import.meta.env.DEV) {
@@ -204,7 +208,13 @@ function App() {
 
   return (
     <AuthContext.Provider
-      value={{ user, isAdmin, isSuperAdmin, userDisplayName }}
+      value={{
+        user,
+        isAdmin,
+        isSuperAdmin,
+        userDisplayName,
+        userCommunityCustomNames,
+      }}
     >
       <Router>
         <Layout />

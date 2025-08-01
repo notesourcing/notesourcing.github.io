@@ -17,7 +17,8 @@ export default function Note() {
   const { id: sequentialId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, userDisplayName } = useContext(AuthContext);
+  const { user, userDisplayName, userCommunityCustomNames } =
+    useContext(AuthContext);
   const [note, setNote] = useState(null);
   const [noteId, setNoteId] = useState(null); // Firebase document ID
   const [loading, setLoading] = useState(true);
@@ -33,6 +34,7 @@ export default function Note() {
   // Privacy state for editing personal notes
   const [editIsPrivate, setEditIsPrivate] = useState(false);
 
+  // Fetch user's community custom names
   useEffect(() => {
     if (!user || !sequentialId) return;
 
@@ -289,8 +291,8 @@ export default function Note() {
         // For self attribution, use current user's display names if this is the user's own note
         if (note.type === "personal" && note.uid === user?.uid) {
           // Priority: 1. Community custom name, 2. Profile display name, 3. Email username
-          if (note.communityId && note.communityDisplayName) {
-            return note.communityDisplayName;
+          if (note.communityId && userCommunityCustomNames[note.communityId]) {
+            return userCommunityCustomNames[note.communityId];
           }
           if (userDisplayName) {
             return userDisplayName;
@@ -302,8 +304,8 @@ export default function Note() {
         // For shared notes, check if current user is the author
         if (note.type === "shared" && note.authorId === user?.uid) {
           // Priority: 1. Community custom name, 2. Profile display name, 3. Email username
-          if (note.communityId && note.communityDisplayName) {
-            return note.communityDisplayName;
+          if (note.communityId && userCommunityCustomNames[note.communityId]) {
+            return userCommunityCustomNames[note.communityId];
           }
           if (userDisplayName) {
             return userDisplayName;

@@ -639,6 +639,13 @@ export default function Community() {
             )}
           </div>
         </div>
+        {/* Custom name display - only for members with custom names */}
+        {isMember && customDisplayName && (
+          <div className={styles.customNameDisplay}>
+            <span className={styles.customNameLabel}>using name:</span>
+            <span className={styles.customNameValue}>{customDisplayName}</span>
+          </div>
+        )}
         {/* Community Config Dropdown - only for members */}
         {isMember && (
           <div className={styles.configContainer} data-config-container>
