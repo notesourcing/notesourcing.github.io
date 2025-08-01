@@ -25,7 +25,7 @@ describe("i18n Configuration", () => {
   });
 
   it("has English as fallback language", () => {
-    expect(i18n.options.fallbackLng).toBe("en");
+    expect(i18n.options.fallbackLng).toEqual(["en"]);
   });
 
   it("has Italian as default language", () => {

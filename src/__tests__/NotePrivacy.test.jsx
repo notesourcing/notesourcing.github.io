@@ -23,7 +23,7 @@ describe("Note Privacy Features", () => {
     vi.clearAllMocks();
   });
 
-  it("shows privacy selector for personal notes only", () => {
+  it("shows privacy selector for personal notes only", async () => {
     render(
       <BrowserRouter>
         <NewNoteForm
@@ -37,8 +37,17 @@ describe("Note Privacy Features", () => {
       </BrowserRouter>
     );
 
-    // Privacy selector should not be visible when community selector is available
-    expect(screen.queryByText(/Privacy della nota/)).not.toBeInTheDocument();
+    // Initially privacy selector should be visible
+    expect(screen.getByText(/Privacy della nota/)).toBeInTheDocument();
+
+    // Select a community
+    const communitySelect = screen.getByRole("combobox");
+    fireEvent.change(communitySelect, { target: { value: "1" } });
+
+    // Now privacy selector should not be visible when community is selected
+    await waitFor(() => {
+      expect(screen.queryByText(/Privacy della nota/)).not.toBeInTheDocument();
+    });
   });
 
   it("displays privacy options when creating personal notes", () => {
@@ -162,12 +171,17 @@ describe("Note Privacy Features", () => {
     );
 
     // Add a field
-    const addFieldButton = screen.getByText("+ Aggiungi Campo");
+    const addFieldButton = screen.getByText("Aggiungi Campo");
     fireEvent.click(addFieldButton);
 
-    // Fill in field
-    const nameInput = screen.getByPlaceholderText("Nome del campo");
-    const valueInput = screen.getByPlaceholderText("Valore del campo");
+    // Fill in field - get the last empty field that was just added
+    const nameInputs = screen.getAllByPlaceholderText(
+      "Nome campo (es. Titolo)"
+    );
+    const valueInputs = screen.getAllByPlaceholderText("Valore campo");
+
+    const nameInput = nameInputs[nameInputs.length - 1]; // Last field added
+    const valueInput = valueInputs[valueInputs.length - 1]; // Last field added
 
     fireEvent.change(nameInput, { target: { value: "Test Field" } });
     fireEvent.change(valueInput, { target: { value: "Test Value" } });
@@ -188,8 +202,12 @@ describe("Note Privacy Features", () => {
             value: "Test Value",
           }),
         ]),
-        null, // no community selected
-        expect.any(Object), // attribution data
+        "", // selectedCommunityId (empty for personal notes)
+        expect.objectContaining({
+          type: "self",
+          name: "",
+          revealPseudonym: false,
+        }),
         true // isPrivate = true
       );
     });
@@ -210,12 +228,17 @@ describe("Note Privacy Features", () => {
     );
 
     // Add a field
-    const addFieldButton = screen.getByText("+ Aggiungi Campo");
+    const addFieldButton = screen.getByText("Aggiungi Campo");
     fireEvent.click(addFieldButton);
 
-    // Fill in field
-    const nameInput = screen.getByPlaceholderText("Nome del campo");
-    const valueInput = screen.getByPlaceholderText("Valore del campo");
+    // Fill in field - get the last empty field that was just added
+    const nameInputs = screen.getAllByPlaceholderText(
+      "Nome campo (es. Titolo)"
+    );
+    const valueInputs = screen.getAllByPlaceholderText("Valore campo");
+
+    const nameInput = nameInputs[nameInputs.length - 1]; // Last field added
+    const valueInput = valueInputs[valueInputs.length - 1]; // Last field added
 
     fireEvent.change(nameInput, { target: { value: "Test Field" } });
     fireEvent.change(valueInput, { target: { value: "Test Value" } });
@@ -232,8 +255,12 @@ describe("Note Privacy Features", () => {
             value: "Test Value",
           }),
         ]),
-        null, // no community selected
-        expect.any(Object), // attribution data
+        "", // selectedCommunityId (empty for personal notes)
+        expect.objectContaining({
+          type: "self",
+          name: "",
+          revealPseudonym: false,
+        }),
         false // isPrivate = false (public)
       );
     });

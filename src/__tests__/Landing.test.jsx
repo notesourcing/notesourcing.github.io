@@ -12,18 +12,21 @@ vi.mock("react-i18next", () => ({
 }));
 
 // Mock AuthContext and useContext
-const mockUser = { uid: "test-user", email: "test@example.com" };
-let mockContextValue = { user: null };
-
 vi.mock("../App", () => ({
-  AuthContext: React.createContext(mockContextValue),
+  AuthContext: React.createContext({ user: null }),
 }));
 
-vi.mock("react", async () => {
-  const actual = await vi.importActual("react");
+import React from "react";
+import { render, screen } from "@testing-library/react";
+import { BrowserRouter } from "react-router-dom";
+import { vi } from "vitest";
+
+// Mock useContext
+vi.mock("react", async (importOriginal) => {
+  const actual = await importOriginal();
   return {
     ...actual,
-    useContext: vi.fn(() => mockContextValue),
+    useContext: vi.fn(),
   };
 });
 
@@ -33,9 +36,13 @@ vi.mock("../utils/appName", () => ({
 }));
 
 describe("Landing", () => {
+  const mockUser = { uid: "test-user", email: "test@example.com" };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    mockContextValue = { user: null };
+
+    // Setup React.useContext mock
+    vi.mocked(React.useContext).mockReturnValue({ user: null });
   });
 
   it("renders landing page with main sections", () => {
@@ -68,8 +75,7 @@ describe("Landing", () => {
   });
 
   it("shows sign in action for non-authenticated users", () => {
-    mockContextValue = { user: null };
-
+    // Already set in beforeEach
     render(
       <BrowserRouter>
         <Landing />
@@ -81,7 +87,9 @@ describe("Landing", () => {
   });
 
   it("shows your notes action for authenticated users", () => {
-    mockContextValue = { user: mockUser };
+    // Setup useContext mock to return user
+    const React = require("react");
+    React.useContext.mockReturnValue({ user: mockUser });
 
     render(
       <BrowserRouter>

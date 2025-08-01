@@ -30,21 +30,24 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-// Mock AuthContext with a simple context value
-const mockUser = { uid: "test-user", email: "test@example.com" };
-let mockContextValue = { user: mockUser };
+import React from "react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { BrowserRouter } from "react-router-dom";
+import { vi } from "vitest";
 
-vi.mock("../App", () => ({
-  AuthContext: React.createContext(mockContextValue),
-}));
-
-vi.mock("react", async () => {
-  const actual = await vi.importActual("react");
+// Mock useContext
+vi.mock("react", async (importOriginal) => {
+  const actual = await importOriginal();
   return {
     ...actual,
-    useContext: vi.fn(() => mockContextValue),
+    useContext: vi.fn(),
   };
 });
+
+// Mock AuthContext
+vi.mock("../App", () => ({
+  AuthContext: React.createContext({ user: null }),
+}));
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -74,9 +77,13 @@ vi.mock("../utils/userUtils", () => ({
 }));
 
 describe("Community Visibility Features", () => {
+  const mockUser = { uid: "test-user", email: "test@example.com" };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    mockContextValue = { user: mockUser };
+
+    // Setup useContext mock to return user
+    vi.mocked(React.useContext).mockReturnValue({ user: mockUser });
 
     // Mock onSnapshot to return empty results
     const { onSnapshot } = require("firebase/firestore");
@@ -209,7 +216,9 @@ describe("Community Visibility Features", () => {
   });
 
   it("filters communities for non-authenticated users", () => {
-    mockContextValue = { user: null };
+    // Setup useContext mock to return no user
+    const React = require("react");
+    React.useContext.mockReturnValue({ user: null });
 
     render(
       <BrowserRouter>
