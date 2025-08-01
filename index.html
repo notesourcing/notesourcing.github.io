@@ -3,8 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Notesourcing</title>
+    <title>NoteSourcing</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      // Update title based on hostname
+      const hostname = window.location.hostname;
+      if (hostname.includes("rivelazioni.github.io")) {
+        document.title = "Rivelazioni";
+      } else if (hostname.includes("galuy.github.io")) {
+        document.title = "Galuy";
+      } else if (hostname.includes("notesourcing.github.io")) {
+        document.title = "NoteSourcing";
+      } else {
+        document.title = "NoteSourcing";
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

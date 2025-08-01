@@ -20,6 +20,7 @@ import Logo from "./components/Logo";
 import { auth, db } from "./firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
+import { getAppName, updateDocumentTitle } from "./utils/appName";
 import styles from "./App.module.css";
 
 export const AuthContext = createContext(null);
@@ -55,7 +56,7 @@ function Layout() {
         <Link
           to="/landing"
           className={styles.logoContainer}
-          title="Pagina principale di NoteSourcing"
+          title={`Pagina principale di ${getAppName()}`}
         >
           <Logo size="medium" showText={true} />
         </Link>
@@ -147,6 +148,11 @@ function App() {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [userDisplayName, setUserDisplayName] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Update document title with app name
+  useEffect(() => {
+    updateDocumentTitle();
+  }, []);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (u) => {

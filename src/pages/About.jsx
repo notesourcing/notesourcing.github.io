@@ -1,12 +1,14 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { getAppName } from "../utils/appName";
 import styles from "./About.module.css";
 
 export default function About() {
+  const appName = getAppName();
   return (
     <div className={styles.container}>
       <div className={styles.hero}>
-        <h1 className={styles.title}>Benvenuto in NoteSourcing</h1>
+        <h1 className={styles.title}>Benvenuto in {appName}</h1>
         <p className={styles.subtitle}>
           La piattaforma collaborativa per condividere e organizzare le tue note
         </p>
@@ -14,12 +16,12 @@ export default function About() {
 
       <div className={styles.content}>
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>🚀 Cosa è NoteSourcing?</h2>
+          <h2 className={styles.sectionTitle}>🚀 Cosa è {appName}?</h2>
           <p className={styles.text}>
-            NoteSourcing è una piattaforma moderna e intuitiva progettata per
+            {appName} è una piattaforma moderna e intuitiva progettata per
             aiutare individui e comunità a raccogliere, organizzare e
             condividere conoscenze in modo collaborativo. Che tu stia prendendo
-            appunti per studio, ricerca o lavoro, NoteSourcing ti offre gli
+            appunti per studio, ricerca o lavoro, {appName} ti offre gli
             strumenti per trasformare le tue idee in una risorsa condivisa.
           </p>
         </section>
@@ -81,7 +83,7 @@ export default function About() {
                 <h3>Crea il tuo Account</h3>
                 <p>
                   Registrati gratuitamente per iniziare a utilizzare
-                  NoteSourcing
+                  {appName}
                 </p>
               </div>
             </div>
@@ -118,18 +120,17 @@ export default function About() {
           <h2 className={styles.sectionTitle}>🌟 La Nostra Missione</h2>
           <p className={styles.text}>
             Crediamo che la conoscenza sia più potente quando viene condivisa.
-            NoteSourcing nasce dalla visione di creare uno spazio digitale dove
-            le persone possano facilmente raccogliere, organizzare e condividere
-            le proprie conoscenze, creando una rete collaborativa di
-            apprendimento che beneficia tutti i partecipanti.
+            {appName} nasce dalla visione di creare uno spazio digitale dove le
+            persone possano facilmente raccogliere, organizzare e condividere le
+            proprie conoscenze, creando una rete collaborativa di apprendimento
+            che beneficia tutti i partecipanti.
           </p>
         </section>
 
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>🔧 Tecnologie</h2>
           <p className={styles.text}>
-            NoteSourcing è costruito utilizzando tecnologie moderne e
-            affidabili:
+            {appName} è costruito utilizzando tecnologie moderne e affidabili:
           </p>
           <div className={styles.technologies}>
             <span className={styles.tech}>React</span>
@@ -143,8 +144,8 @@ export default function About() {
         <div className={styles.cta}>
           <h2>Pronto a iniziare?</h2>
           <p>
-            Unisciti alla community di NoteSourcing e inizia a condividere le
-            tue conoscenze oggi stesso!
+            Unisciti alla community di {appName} e inizia a condividere le tue
+            conoscenze oggi stesso!
           </p>
           <div className={styles.ctaButtons}>
             <Link to="/login" className={styles.primaryButton}>

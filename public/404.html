@@ -4,6 +4,19 @@
     <meta charset="utf-8" />
     <title>NoteSourcing - Page Not Found</title>
     <script type="text/javascript">
+      // Update title based on hostname
+      const hostname = window.location.hostname;
+      if (hostname.includes("rivelazioni.github.io")) {
+        document.title = "Rivelazioni - Page Not Found";
+      } else if (hostname.includes("galuy.github.io")) {
+        document.title = "Galuy - Page Not Found";
+      } else if (hostname.includes("notesourcing.github.io")) {
+        document.title = "NoteSourcing - Page Not Found";
+      } else {
+        document.title = "NoteSourcing - Page Not Found";
+      }
+    </script>
+    <script type="text/javascript">
       // Single Page Apps for GitHub Pages
       // https://github.com/rafgraph/spa-github-pages
       // Copyright (c) 2016 Rafael Pedicini, licensed under the MIT License

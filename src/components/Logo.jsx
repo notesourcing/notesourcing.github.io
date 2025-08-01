@@ -1,4 +1,5 @@
 import React from "react";
+import { getAppName } from "../utils/appName";
 import styles from "./Logo.module.css";
 
 const Logo = ({ size = "medium", showText = true, className = "" }) => {
@@ -8,6 +9,9 @@ const Logo = ({ size = "medium", showText = true, className = "" }) => {
     large: "48px",
     xlarge: "64px",
   };
+
+  const appName = getAppName();
+  const logoLetter = appName.charAt(0);
 
   return (
     <div className={`${styles.logo} ${className}`}>
@@ -46,10 +50,10 @@ const Logo = ({ size = "medium", showText = true, className = "" }) => {
           fontFamily="Arial, sans-serif"
           fontWeight="bold"
         >
-          N
+          {logoLetter}
         </text>
       </svg>
-      {showText && <span className={styles.logoText}>NoteSourcing</span>}
+      {showText && <span className={styles.logoText}>{appName}</span>}
     </div>
   );
 };

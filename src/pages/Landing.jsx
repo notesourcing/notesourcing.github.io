@@ -1,15 +1,17 @@
 import React, { useContext } from "react";
 import { Link } from "react-router-dom";
 import { AuthContext } from "../App";
+import { getAppName } from "../utils/appName";
 import styles from "./Landing.module.css";
 
 export default function Landing() {
   const { user } = useContext(AuthContext);
+  const appName = getAppName();
 
   return (
     <div className={styles.container}>
       <div className={styles.hero}>
-        <h1 className={styles.title}>📚 NoteSourcing</h1>
+        <h1 className={styles.title}>📚 {appName}</h1>
         <p className={styles.description}>
           Una piattaforma collaborativa moderna per raccogliere, organizzare e
           condividere conoscenze. Trasforma le tue idee in una risorsa condivisa
@@ -56,12 +58,12 @@ export default function Landing() {
 
       <div className={styles.content}>
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>🚀 Cosa è NoteSourcing?</h2>
+          <h2 className={styles.sectionTitle}>🚀 Cosa è {appName}?</h2>
           <p className={styles.text}>
-            NoteSourcing è una piattaforma moderna e intuitiva progettata per
+            {appName} è una piattaforma moderna e intuitiva progettata per
             aiutare individui e comunità a raccogliere, organizzare e
             condividere conoscenze in modo collaborativo. Che tu stia prendendo
-            appunti per studio, ricerca o lavoro, NoteSourcing ti offre gli
+            appunti per studio, ricerca o lavoro, {appName} ti offre gli
             strumenti per trasformare le tue idee in una risorsa condivisa.
           </p>
         </section>
@@ -123,7 +125,7 @@ export default function Landing() {
                 <h3>Crea il tuo Account</h3>
                 <p>
                   Registrati gratuitamente per iniziare a utilizzare
-                  NoteSourcing
+                  {appName}
                 </p>
               </div>
             </div>
@@ -172,7 +174,7 @@ export default function Landing() {
             className={styles.linkCard}
           >
             <div className={styles.linkIcon}>🛠️</div>
-            <h3>Migliora NoteSourcing</h3>
+            <h3>Migliora {appName}</h3>
             <p>Segnala bug, proponi nuove funzionalità o miglioramenti</p>
           </a>
 
@@ -186,7 +188,7 @@ export default function Landing() {
 
       <div className={styles.footer}>
         <p>
-          Benvenuto nella community di NoteSourcing! Insieme possiamo creare una
+          Benvenuto nella community di {appName}! Insieme possiamo creare una
           rete di conoscenza condivisa.
         </p>
       </div>
