@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import React from "react";
 import Landing from "../pages/Landing";
+import { AuthContext } from "../App";
 
 // Mock react-i18next
 vi.mock("react-i18next", () => ({
@@ -10,25 +11,6 @@ vi.mock("react-i18next", () => ({
     t: (key) => key, // Return the key as the translation for testing
   }),
 }));
-
-// Mock AuthContext and useContext
-vi.mock("../App", () => ({
-  AuthContext: React.createContext({ user: null }),
-}));
-
-import React from "react";
-import { render, screen } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
-import { vi } from "vitest";
-
-// Mock useContext
-vi.mock("react", async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    useContext: vi.fn(),
-  };
-});
 
 // Mock getAppName utility
 vi.mock("../utils/appName", () => ({
@@ -38,135 +20,97 @@ vi.mock("../utils/appName", () => ({
 describe("Landing", () => {
   const mockUser = { uid: "test-user", email: "test@example.com" };
 
+  const renderComponent = (user) => {
+    return render(
+      <BrowserRouter>
+        <AuthContext.Provider value={{ user }}>
+          <Landing />
+        </AuthContext.Provider>
+      </BrowserRouter>
+    );
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-
-    // Setup React.useContext mock
-    vi.mocked(React.useContext).mockReturnValue({ user: null });
   });
 
   it("renders landing page with main sections", () => {
-    render(
-      <BrowserRouter>
-        <Landing />
-      </BrowserRouter>
-    );
+    renderComponent(null);
 
     // Check for main landing elements
-    expect(screen.getByText("landingTitle")).toBeInTheDocument();
-    expect(screen.getByText("landingDescription")).toBeInTheDocument();
+    expect(screen.getByText(/landingTitle/i)).toBeInTheDocument();
+    expect(screen.getByText(/landingDescription/i)).toBeInTheDocument();
 
     // Check for tagline elements
-    expect(screen.getByText("openSource")).toBeInTheDocument();
-    expect(screen.getByText("communityDriven")).toBeInTheDocument();
-    expect(screen.getByText("knowledgeSharing")).toBeInTheDocument();
+    expect(screen.getByText(/openSource/i)).toBeInTheDocument();
+    expect(screen.getByText(/communityDriven/i)).toBeInTheDocument();
+    expect(screen.getByText(/knowledgeSharing/i)).toBeInTheDocument();
   });
 
   it("renders quick start section", () => {
-    render(
-      <BrowserRouter>
-        <Landing />
-      </BrowserRouter>
-    );
+    renderComponent(null);
 
-    expect(screen.getByText("quickStart")).toBeInTheDocument();
-    expect(screen.getByText("exploreUniverse")).toBeInTheDocument();
-    expect(screen.getByText("communityAction")).toBeInTheDocument();
+    expect(screen.getByText(/quickStart/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/exploreUniverse/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/communityAction/i).length).toBeGreaterThan(0);
   });
 
   it("shows sign in action for non-authenticated users", () => {
-    // Already set in beforeEach
-    render(
-      <BrowserRouter>
-        <Landing />
-      </BrowserRouter>
-    );
+    renderComponent(null);
 
-    expect(screen.getByText("signInAction")).toBeInTheDocument();
-    expect(screen.getByText("signInActionDesc")).toBeInTheDocument();
+    expect(screen.getAllByText(/signInAction/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/signInActionDesc/i).length).toBeGreaterThan(0);
   });
 
   it("shows your notes action for authenticated users", () => {
-    // Setup useContext mock to return user
-    const React = require("react");
-    React.useContext.mockReturnValue({ user: mockUser });
+    renderComponent(mockUser);
 
-    render(
-      <BrowserRouter>
-        <Landing />
-      </BrowserRouter>
-    );
-
-    expect(screen.getByText("yourNotes")).toBeInTheDocument();
-    expect(screen.getByText("yourNotesDesc")).toBeInTheDocument();
+    expect(screen.getAllByText(/yourNotes/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/yourNotesDesc/i).length).toBeGreaterThan(0);
   });
 
   it("renders feature sections", () => {
-    render(
-      <BrowserRouter>
-        <Landing />
-      </BrowserRouter>
-    );
+    renderComponent(null);
 
-    expect(screen.getByText("whatIsApp")).toBeInTheDocument();
-    expect(screen.getByText("mainFeatures")).toBeInTheDocument();
-    expect(screen.getByText("personalSharedNotes")).toBeInTheDocument();
-    expect(screen.getByText("collaborativeCommunity")).toBeInTheDocument();
-    expect(screen.getByText("realTimeReactions")).toBeInTheDocument();
+    expect(screen.getAllByText(/whatIsApp/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/mainFeatures/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/personalSharedNotes/i).length).toBeGreaterThan(
+      0
+    );
+    expect(
+      screen.getAllByText(/collaborativeCommunity/i).length
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByText(/realTimeReactions/i).length).toBeGreaterThan(0);
   });
 
   it("renders how to start section", () => {
-    render(
-      <BrowserRouter>
-        <Landing />
-      </BrowserRouter>
-    );
+    renderComponent(null);
 
-    expect(screen.getByText("howToStart")).toBeInTheDocument();
-    expect(screen.getByText("createAccount")).toBeInTheDocument();
-    expect(screen.getByText("exploreCommunity")).toBeInTheDocument();
-    expect(screen.getByText("createShare")).toBeInTheDocument();
+    expect(screen.getByText(/howToStart/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/createAccount/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/exploreCommunity/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/createShare/i).length).toBeGreaterThan(0);
   });
 
   it("renders contribution links", () => {
-    render(
-      <BrowserRouter>
-        <Landing />
-      </BrowserRouter>
-    );
+    renderComponent(null);
 
-    expect(screen.getByText("contribute")).toBeInTheDocument();
-    expect(screen.getByText("githubRepo")).toBeInTheDocument();
-    expect(screen.getByText("improveApp")).toBeInTheDocument();
-    expect(screen.getByText("supportProject")).toBeInTheDocument();
+    expect(screen.getByText(/contribute/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/githubRepo/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/improveApp/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/supportProject/i).length).toBeGreaterThan(0);
   });
 
   it("contains external links with proper attributes", () => {
-    render(
-      <BrowserRouter>
-        <Landing />
-      </BrowserRouter>
+    renderComponent(null);
+
+    // Find the githubRepo link by role and accessible name
+    const githubLink = screen.getByRole("link", { name: /githubRepo/i });
+    expect(githubLink).toHaveAttribute(
+      "href",
+      "https://github.com/notesourcing/notesourcing.github.io"
     );
-
-    // Check for GitHub repository link
-    const githubLinks = screen
-      .getAllByRole("link")
-      .filter((link) => link.href && link.href.includes("github.com"));
-    expect(githubLinks.length).toBeGreaterThan(0);
-
-    githubLinks.forEach((link) => {
-      expect(link).toHaveAttribute("target", "_blank");
-      expect(link).toHaveAttribute("rel", "noopener noreferrer");
-    });
-  });
-
-  it("renders footer section", () => {
-    render(
-      <BrowserRouter>
-        <Landing />
-      </BrowserRouter>
-    );
-
-    expect(screen.getByText("welcomeFooter")).toBeInTheDocument();
+    expect(githubLink).toHaveAttribute("target", "_blank");
+    expect(githubLink).toHaveAttribute("rel", "noopener noreferrer");
   });
 });

@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createDocumentWithSequentialId } from "../utils/sequentialIds";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import React from "react";
 import Communities from "../pages/Communities";
+import { AuthContext } from "../App";
 
 // Mock Firebase
 vi.mock("../firebase", () => ({
@@ -10,43 +12,121 @@ vi.mock("../firebase", () => ({
 }));
 
 // Mock Firestore functions
-vi.mock("firebase/firestore", () => ({
-  collection: vi.fn(),
-  query: vi.fn(),
-  where: vi.fn(),
-  orderBy: vi.fn(),
-  onSnapshot: vi.fn(),
-  addDoc: vi.fn(),
-  serverTimestamp: vi.fn(),
-  Timestamp: {
-    now: vi.fn(() => ({ toDate: () => new Date() })),
-  },
-}));
+const adminCommunity = {
+  id: "admin-1",
+  data: () => ({
+    name: "Admin Community",
+    visibility: "public",
+    creatorId: "test-user",
+    members: ["test-user"],
+    admins: ["test-user"],
+    created: { toDate: () => new Date() },
+  }),
+};
+const memberCommunity = {
+  id: "member-1",
+  data: () => ({
+    name: "Member Community",
+    visibility: "public",
+    creatorId: "other-user",
+    members: ["test-user"],
+    admins: ["other-user"],
+    created: { toDate: () => new Date() },
+  }),
+};
+vi.mock("firebase/firestore", async () => {
+  const firestore = await vi.importActual("firebase/firestore");
+  const mockNote = {
+    id: "note-1",
+    communityId: "admin-1",
+    reactions: { "👍": ["user-1", "user-2"] },
+    created: { toDate: () => new Date() },
+  };
+  const mockComment = { id: "comment-1", noteId: "note-1" };
+
+  return {
+    ...firestore,
+    collection: vi.fn((db, name) => ({
+      name,
+      withConverter: vi.fn(() => ({ name, converter: true })),
+    })),
+    query: vi.fn((coll, ...constraints) => ({ ...coll, constraints })),
+    orderBy: vi.fn((field, direction = "asc") => ({
+      type: "orderBy",
+      field,
+      direction,
+    })),
+    where: vi.fn((field, op, value) => ({
+      type: "where",
+      field,
+      op,
+      value,
+    })),
+    onSnapshot: vi.fn((query, callback) => {
+      const collectionName = query.name;
+      if (collectionName === "communities") {
+        callback({
+          docs: [adminCommunity, memberCommunity].map((doc) => ({
+            id: doc.id,
+            data: doc.data,
+          })),
+        });
+      } else if (collectionName === "notes") {
+        callback({
+          docs: [{ id: "note-1", data: () => mockNote }],
+        });
+      } else if (collectionName === "comments") {
+        callback({
+          docs: [{ id: "comment-1", data: () => mockComment }],
+        });
+      } else if (collectionName === "users") {
+        callback({ docs: [] });
+      }
+      return () => {}; // Return an unsubscribe function
+    }),
+    addDoc: vi.fn(),
+    getDoc: vi.fn(() => Promise.resolve({ exists: () => false })),
+    doc: vi.fn((db, collectionName, docId) => ({
+      db,
+      collectionName,
+      docId,
+    })),
+    serverTimestamp: vi.fn(),
+    Timestamp: {
+      now: vi.fn(() => ({ toDate: () => new Date() })),
+    },
+  };
+});
 
 // Mock react-i18next
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key) => key,
+    t: (key) => {
+      const translations = {
+        yourCommunities: "Le tue Community",
+        allCommunities: "Tutte le Community",
+        loadingCommunities: "Loading communities...",
+        globalStats: "Statistiche Globali",
+        totalCommunities: "Community Totali",
+        totalNotes: "Note Totali",
+        totalComments: "Commenti Totali",
+        totalReactions: "Reazioni Totali",
+        createCommunity: "Crea Community",
+        confirm: "Conferma",
+        communityNamePlaceholder: "Nome della Community",
+        noOtherCommunitiesAvailable: "Non ci sono altre community disponibili.",
+        publicCommunity: "Community Pubblica",
+        privateCommunity: "Community Privata",
+        hiddenCommunity: "Community Nascosta",
+        publicHint: "Visibile a tutti gli utenti.",
+        privateHint: "Visibile solo ai membri invitati.",
+        hiddenHint: "Visibile solo ai membri e non elencata.",
+        Admin: "Admin",
+        Membro: "Membro",
+      };
+      return translations[key] || key;
+    },
   }),
-}));
-
-import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
-import { vi } from "vitest";
-
-// Mock useContext
-vi.mock("react", async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    useContext: vi.fn(),
-  };
-});
-
-// Mock AuthContext
-vi.mock("../App", () => ({
-  AuthContext: React.createContext({ user: null }),
 }));
 
 // Mock useNavigate
@@ -60,18 +140,27 @@ vi.mock("react-router-dom", async () => {
 });
 
 // Mock sequential IDs
-vi.mock("../utils/sequentialIds", () => ({
-  createDocumentWithSequentialId: vi.fn(() =>
-    Promise.resolve({ docId: "test-id", sequentialId: 1 })
-  ),
-}));
+vi.mock("../utils/sequentialIds", () => {
+  return {
+    createDocumentWithSequentialId: vi.fn(() =>
+      Promise.resolve({ docId: "test-id", sequentialId: 1 })
+    ),
+    getSequentialIdFromFirebase: vi.fn((_coll, docId) => Promise.resolve(1)),
+  };
+});
 
 // Mock user utils
 vi.mock("../utils/userUtils", () => ({
   enrichNotesWithUserData: vi.fn((notes) => Promise.resolve(notes)),
   enrichNotesWithCommunityNames: vi.fn((notes) => Promise.resolve(notes)),
-  createRealTimeNotesEnrichment: vi.fn(() => ({
-    enrichedNotes: [],
+  createRealTimeNotesEnrichment: vi.fn((communities) => ({
+    enrichedNotes: communities.map((community) => ({
+      ...community,
+      creatorDisplayName:
+        community.authorDisplayName ||
+        community.authorEmail?.split("@")[0] ||
+        "Creatore Sconosciuto",
+    })),
     cleanup: vi.fn(),
   })),
 }));
@@ -79,128 +168,161 @@ vi.mock("../utils/userUtils", () => ({
 describe("Community Visibility Features", () => {
   const mockUser = { uid: "test-user", email: "test@example.com" };
 
+  const renderComponent = (user) => {
+    return render(
+      <BrowserRouter>
+        <AuthContext.Provider value={{ user }}>
+          <Communities />
+        </AuthContext.Provider>
+      </BrowserRouter>
+    );
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-
-    // Setup useContext mock to return user
-    vi.mocked(React.useContext).mockReturnValue({ user: mockUser });
-
-    // Mock onSnapshot to return empty results
-    const { onSnapshot } = require("firebase/firestore");
-    onSnapshot.mockImplementation((query, callback) => {
-      callback({ docs: [] });
-      return vi.fn(); // Return unsubscribe function
-    });
   });
 
   it("renders community creation form with visibility options", async () => {
-    render(
-      <BrowserRouter>
-        <Communities />
-      </BrowserRouter>
-    );
+    renderComponent(mockUser);
+
+    // Wait for loading to finish and create button to appear
+    await waitFor(() => {
+      expect(screen.getByText("Crea Community")).toBeInTheDocument();
+    });
 
     // Click create community button
-    const createButton = screen.getByText("createCommunity");
+    const createButton = screen.getByText("Crea Community");
     fireEvent.click(createButton);
 
+    // Wait for the select to appear
     await waitFor(() => {
-      expect(screen.getByLabelText("visibility")).toBeInTheDocument();
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
     // Check visibility options
-    expect(screen.getByDisplayValue("public")).toBeInTheDocument();
-    expect(screen.getByText("publicCommunity")).toBeInTheDocument();
-    expect(screen.getByText("privateCommunity")).toBeInTheDocument();
-    expect(screen.getByText("hiddenCommunity")).toBeInTheDocument();
+    const select = screen.getByRole("combobox");
+    expect(select).toBeInTheDocument();
+    expect(screen.getByText("Community Pubblica")).toBeInTheDocument();
+    expect(screen.getByText("Community Privata")).toBeInTheDocument();
+    expect(screen.getByText("Community Nascosta")).toBeInTheDocument();
   });
 
   it("shows different hints for visibility options", async () => {
-    render(
-      <BrowserRouter>
-        <Communities />
-      </BrowserRouter>
-    );
+    renderComponent(mockUser);
 
-    // Click create community button
-    const createButton = screen.getByText("createCommunity");
-    fireEvent.click(createButton);
-
+    // Wait for loading to finish and create button to appear
     await waitFor(() => {
-      expect(screen.getByText("publicHint")).toBeInTheDocument();
+      expect(screen.getByText("Crea Community")).toBeInTheDocument();
     });
 
+    // Click create community button
+    const createButton = screen.getByText("Crea Community");
+    fireEvent.click(createButton);
+
+    // Wait for the select to appear
+    await waitFor(() => {
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
+    });
+
+    // Should show public hint
+    expect(
+      screen.getByText("Visibile a tutti gli utenti.")
+    ).toBeInTheDocument();
+
     // Change to private visibility
-    const privateOption = screen.getByDisplayValue("private");
-    fireEvent.click(privateOption);
+    const select = screen.getByRole("combobox");
+    fireEvent.change(select, { target: { value: "private" } });
 
     await waitFor(() => {
-      expect(screen.getByText("privateHint")).toBeInTheDocument();
+      expect(
+        screen.getByText("Visibile solo ai membri invitati.")
+      ).toBeInTheDocument();
     });
 
     // Change to hidden visibility
-    const hiddenOption = screen.getByDisplayValue("hidden");
-    fireEvent.click(hiddenOption);
+    fireEvent.change(select, { target: { value: "hidden" } });
 
     await waitFor(() => {
-      expect(screen.getByText("hiddenHint")).toBeInTheDocument();
+      expect(
+        screen.getByText("Visibile solo ai membri e non elencata.")
+      ).toBeInTheDocument();
     });
   });
 
-  it("renders community sections for different user types", () => {
-    render(
-      <BrowserRouter>
-        <Communities />
-      </BrowserRouter>
-    );
+  it("renders community sections for different user types", async () => {
+    renderComponent(mockUser);
 
-    // Should show admin communities section
-    expect(screen.getByText(/👑.*Admin/)).toBeInTheDocument();
+    // Wait for loading to finish
+    await waitFor(() => {
+      expect(screen.queryByText(/loadingCommunities/i)).not.toBeInTheDocument();
+    });
 
-    // Should show member communities section
-    expect(screen.getByText(/👤.*Membro/)).toBeInTheDocument();
-
-    // Should show other communities section
-    expect(screen.getByText(/🌍/)).toBeInTheDocument();
+    // Should show admin and member communities section headers (robust to element splits)
+    await waitFor(() => {
+      const h2s = screen.getAllByRole("heading", { level: 2 });
+      // Italian: "👑 Le tue Community (Admin)"
+      const adminHeader = h2s.find(
+        (h) =>
+          h.textContent &&
+          h.textContent.includes("👑") &&
+          h.textContent.includes("Le tue Community") &&
+          h.textContent.includes("Admin")
+      );
+      expect(adminHeader).toBeTruthy();
+      // Italian: "👤 Le tue Community (Membro)"
+      const memberHeader = h2s.find(
+        (h) =>
+          h.textContent &&
+          h.textContent.includes("👤") &&
+          h.textContent.includes("Le tue Community") &&
+          h.textContent.includes("Membro")
+      );
+      expect(memberHeader).toBeTruthy();
+      // Should show other communities section (Italian header)
+      expect(
+        h2s.some((h) => h.textContent && h.textContent.includes("🌍"))
+      ).toBe(true);
+    });
   });
 
-  it("displays overall statistics", () => {
-    render(
-      <BrowserRouter>
-        <Communities />
-      </BrowserRouter>
-    );
+  it("displays overall statistics", async () => {
+    renderComponent(mockUser);
 
-    expect(screen.getByText("globalStats")).toBeInTheDocument();
-    expect(screen.getByText("totalCommunities")).toBeInTheDocument();
+    // Wait for loading to finish
+    await waitFor(() => {
+      expect(screen.queryByText(/loadingCommunities/i)).not.toBeInTheDocument();
+    });
+
+    // The heading includes an emoji, so use a function matcher
+    expect(
+      screen.getByText((content) => content.includes("Statistiche Globali"))
+    ).toBeInTheDocument();
+    expect(screen.getByText("Community Totali")).toBeInTheDocument();
   });
 
   it("handles community creation with different visibility settings", async () => {
-    const {
-      createDocumentWithSequentialId,
-    } = require("../utils/sequentialIds");
+    renderComponent(mockUser);
 
-    render(
-      <BrowserRouter>
-        <Communities />
-      </BrowserRouter>
-    );
+    // Wait for loading to finish and create button to appear
+    await waitFor(() => {
+      expect(screen.getByText("Crea Community")).toBeInTheDocument();
+    });
 
     // Click create community button
-    const createButton = screen.getByText("createCommunity");
+    const createButton = screen.getByText("Crea Community");
     fireEvent.click(createButton);
 
     await waitFor(() => {
-      const nameInput = screen.getByLabelText("communityName");
+      const nameInput = screen.getByPlaceholderText("Nome della Community");
       fireEvent.change(nameInput, { target: { value: "Test Community" } });
     });
 
     // Select private visibility
-    const privateOption = screen.getByDisplayValue("private");
-    fireEvent.click(privateOption);
+    const select = screen.getByRole("combobox");
+    fireEvent.change(select, { target: { value: "private" } });
 
     // Submit form
-    const confirmButton = screen.getByText("confirm");
+    const confirmButton = screen.getByText("Conferma");
     fireEvent.click(confirmButton);
 
     await waitFor(() => {
@@ -216,21 +338,13 @@ describe("Community Visibility Features", () => {
   });
 
   it("filters communities for non-authenticated users", () => {
-    // Setup useContext mock to return no user
-    const React = require("react");
-    React.useContext.mockReturnValue({ user: null });
-
-    render(
-      <BrowserRouter>
-        <Communities />
-      </BrowserRouter>
-    );
+    renderComponent(null);
 
     // Should not show create community button for non-authenticated users
-    expect(screen.queryByText("createCommunity")).not.toBeInTheDocument();
+    expect(screen.queryByText("Crea Community")).not.toBeInTheDocument();
 
     // Should still show community sections but without user-specific sections
-    expect(screen.queryByText(/👑.*Admin/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/👤.*Membro/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/👑.*Admin/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/👤.*Membro/i)).not.toBeInTheDocument();
   });
 });

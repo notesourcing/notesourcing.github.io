@@ -2,7 +2,7 @@
  * Sequential ID utilities for user-friendly URLs
  * Maps Firebase document IDs to sequential numbers and vice versa
  */
-import { db, getNextSequence } from "../firebase";
+import { db, getNextSequence } from "../firebase.js";
 import {
   doc,
   getDoc,
@@ -48,7 +48,8 @@ export const createDocumentWithSequentialId = async (collectionName, data) => {
         "Could not create sequential ID mapping (permissions issue):",
         mappingError
       );
-      // Document was still created successfully, just without the mapping
+      // Re-throw the error to let the caller handle it
+      throw mappingError;
     }
 
     return {
