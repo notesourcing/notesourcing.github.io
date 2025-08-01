@@ -9,7 +9,10 @@ import {
   Timestamp,
   deleteDoc,
 } from "firebase/firestore";
-import { getFirebaseIdFromSequential } from "../utils/sequentialIds";
+import {
+  getFirebaseIdFromSequential,
+  getSequentialIdFromFirebase,
+} from "../utils/sequentialIds";
 import Comments from "../components/Comments";
 import styles from "./Note.module.css";
 
@@ -21,6 +24,7 @@ export default function Note() {
     useContext(AuthContext);
   const [note, setNote] = useState(null);
   const [noteId, setNoteId] = useState(null); // Firebase document ID
+  const [communitySequentialId, setCommunitySequentialId] = useState(null); // Community sequential ID for back navigation
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editFields, setEditFields] = useState([]);
@@ -168,6 +172,20 @@ export default function Note() {
           // Notes are publicly viewable (as seen in Home page)
           // Only editing should be restricted to authors
           setNote(noteData);
+
+          // Fetch community sequential ID if this is a shared note with a community
+          if (noteData.type === "shared" && noteData.communityId) {
+            try {
+              const sequentialId = await getSequentialIdFromFirebase(
+                "communities",
+                noteData.communityId
+              );
+              setCommunitySequentialId(sequentialId);
+            } catch (error) {
+              console.warn("Could not fetch community sequential ID:", error);
+            }
+          }
+
           setEditFields(
             noteData.fields || [{ name: "text", value: noteData.text || "" }]
           );
@@ -347,11 +365,15 @@ export default function Note() {
       const referrer = document.referrer;
       const fromCommunity =
         referrer.includes(`/community/${note.communityId}`) ||
+        (communitySequentialId &&
+          referrer.includes(`/community/${communitySequentialId}`)) ||
         location.state?.fromCommunity;
 
       if (fromCommunity) {
+        // Use sequential ID if available, fallback to Firebase ID
+        const communityId = communitySequentialId || note.communityId;
         return {
-          to: `/community/${note.communityId}`,
+          to: `/community/${communityId}`,
           text: "← Torna alla Community",
         };
       }
