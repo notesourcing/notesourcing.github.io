@@ -8,6 +8,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Home from "./pages/Home";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -17,6 +18,7 @@ import Communities from "./pages/Communities";
 import UserRoles from "./pages/UserRoles";
 import Profile from "./pages/Profile";
 import Logo from "./components/Logo";
+import LanguageSwitcher from "./components/LanguageSwitcher";
 import { auth, db } from "./firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
@@ -27,6 +29,7 @@ export const AuthContext = createContext(null);
 
 function Layout() {
   const { user, isSuperAdmin, userDisplayName } = useContext(AuthContext);
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -69,7 +72,7 @@ function Layout() {
                 : styles.navLink
             }
           >
-            📝 Note
+            📝 {t("home")}
           </Link>
           <Link
             to="/communities"
@@ -79,7 +82,7 @@ function Layout() {
                 : styles.navLink
             }
           >
-            👥 Le Comunità
+            👥 {t("communities")}
           </Link>
           {isSuperAdmin && (
             <Link
@@ -90,7 +93,7 @@ function Layout() {
                   : styles.navLink
               }
             >
-              🛡️ Gestione Utenti
+              🛡️ {t("manageUsers")}
             </Link>
           )}
           {user ? (
@@ -102,12 +105,12 @@ function Layout() {
                     ? `${styles.navLink} ${styles.activeNavLink}`
                     : styles.navLink
                 }
-                title="Il mio profilo"
+                title={t("profile")}
               >
                 👤 {getProfileDisplayName()}
               </Link>
               <button onClick={handleLogout} className={styles.logoutButton}>
-                Logout
+                {t("logout")}
               </button>
             </div>
           ) : (
@@ -119,9 +122,10 @@ function Layout() {
                   : styles.navLink
               }
             >
-              🔑 Login
+              🔑 {t("login")}
             </Link>
           )}
+          <LanguageSwitcher />
         </nav>
       </header>
       <main className={styles.mainContent}>
