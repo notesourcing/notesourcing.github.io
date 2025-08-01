@@ -618,7 +618,11 @@ export default function Note() {
 
       {/* Comments Section */}
       {note && noteId && note.type && (
-        <Comments noteId={noteId} noteType={note.type} />
+        <Comments
+          noteId={noteId}
+          noteType={note.type}
+          communityId={note.communityId}
+        />
       )}
     </div>
   );

@@ -15,8 +15,9 @@ import { db } from "../firebase";
 import { AuthContext } from "../App";
 import styles from "./Comments.module.css";
 
-export default function Comments({ noteId, noteType }) {
-  const { user, userDisplayName } = useContext(AuthContext);
+export default function Comments({ noteId, noteType, communityId }) {
+  const { user, userDisplayName, userCommunityCustomNames } =
+    useContext(AuthContext);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [replyingTo, setReplyingTo] = useState(null);
@@ -160,7 +161,14 @@ export default function Comments({ noteId, noteType }) {
   const formatUserName = (comment) => {
     // If this is the current user's comment, use their display names
     if (comment.authorId === user?.uid) {
-      // Priority: 1. Community custom name (if we had community context), 2. Profile display name, 3. Email username
+      // Priority: 1. Community custom name, 2. Profile display name, 3. Email username
+      if (
+        communityId &&
+        userCommunityCustomNames &&
+        userCommunityCustomNames[communityId]
+      ) {
+        return userCommunityCustomNames[communityId];
+      }
       if (userDisplayName) {
         return userDisplayName;
       }
