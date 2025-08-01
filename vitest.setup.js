@@ -3,7 +3,20 @@ import "@testing-library/jest-dom";
 import { vi } from "vitest";
 
 // Global Firebase mock for all tests
-const mockApp = {};
+const mockApp = {
+  name: "[DEFAULT]",
+  options: {},
+  automaticDataCollectionEnabled: false,
+  _providers: new Map(),
+  _isDeleted: false,
+  container: {
+    getProvider: vi.fn(() => ({
+      isInitialized: () => true,
+      getImmediate: () => mockApp,
+    })),
+  },
+};
+
 vi.mock("firebase/app", () => ({
   initializeApp: vi.fn(() => mockApp),
   getApp: vi.fn(() => mockApp),
