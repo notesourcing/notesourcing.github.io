@@ -459,175 +459,125 @@ export default function Note() {
       {editing ? (
         <div className={styles.form}>
           {editFields.map((field, index) => (
-            <div key={index} className={styles.field}>
-              <input
-                type="text"
-                value={field.name}
-                onChange={(e) =>
-                  handleFieldChange(index, "name", e.target.value)
-                }
-                placeholder="Nome campo"
-                className={styles.input}
-              />
-              <textarea
-                value={field.value}
-                onChange={(e) =>
-                  handleFieldChange(index, "value", e.target.value)
-                }
-                placeholder="Valore campo"
-                className={styles.textarea}
-              />
+            <div key={index} className={styles.fieldCard}>
               <button
+                type="button"
                 onClick={() => removeField(index)}
-                className={styles.deleteButton}
+                className={styles.removeButtonX}
+                title="Rimuovi campo"
               >
-                Rimuovi Campo
+                ×
               </button>
+              <div className={styles.fieldContent}>
+                <div className={styles.fieldNameSection}>
+                  <label className={styles.fieldLabelCompact}>
+                    Nome del campo
+                  </label>
+                  <input
+                    type="text"
+                    value={field.name}
+                    onChange={(e) =>
+                      handleFieldChange(index, "name", e.target.value)
+                    }
+                    placeholder="es. Titolo"
+                    className={styles.inputCompact}
+                  />
+                </div>
+                <div className={styles.fieldValueSection}>
+                  <label className={styles.fieldLabelCompact}>
+                    Valore del campo
+                  </label>
+                  <textarea
+                    value={field.value}
+                    onChange={(e) =>
+                      handleFieldChange(index, "value", e.target.value)
+                    }
+                    placeholder="Valore campo"
+                    className={styles.textareaResizable}
+                  />
+                </div>
+              </div>
             </div>
           ))}
-          <button onClick={addField} className={styles.button}>
+          <button onClick={addField} className={styles.addFieldButton}>
             Aggiungi Campo
           </button>
 
           {/* Attribution editing section */}
-          <div className={styles.attributionSection}>
-            <h3 className={styles.sectionTitle}>Attribuzione della Nota</h3>
-            <div className={styles.attributionOptions}>
-              <div className={styles.radioGroup}>
-                <label className={styles.radioLabel}>
-                  <input
-                    type="radio"
-                    name="attribution"
-                    value="self"
-                    checked={editAttributionType === "self"}
-                    onChange={(e) => setEditAttributionType(e.target.value)}
-                    className={styles.radioInput}
-                  />
-                  <span>👤 A me stesso/a</span>
-                </label>
-
-                <label className={styles.radioLabel}>
-                  <input
-                    type="radio"
-                    name="attribution"
-                    value="other"
-                    checked={editAttributionType === "other"}
-                    onChange={(e) => setEditAttributionType(e.target.value)}
-                    className={styles.radioInput}
-                  />
-                  <span>👥 Ad un'altra persona</span>
-                </label>
-
-                <label className={styles.radioLabel}>
-                  <input
-                    type="radio"
-                    name="attribution"
-                    value="pseudonym"
-                    checked={editAttributionType === "pseudonym"}
-                    onChange={(e) => setEditAttributionType(e.target.value)}
-                    className={styles.radioInput}
-                  />
-                  <span>🎭 Ad uno pseudonimo</span>
-                </label>
-
-                <label className={styles.radioLabel}>
-                  <input
-                    type="radio"
-                    name="attribution"
-                    value="eteronym"
-                    checked={editAttributionType === "eteronym"}
-                    onChange={(e) => setEditAttributionType(e.target.value)}
-                    className={styles.radioInput}
-                  />
-                  <span>✍️ Ad un eteronimo</span>
-                </label>
-
-                <label className={styles.radioLabel}>
-                  <input
-                    type="radio"
-                    name="attribution"
-                    value="anonymous"
-                    checked={editAttributionType === "anonymous"}
-                    onChange={(e) => setEditAttributionType(e.target.value)}
-                    className={styles.radioInput}
-                  />
-                  <span>❓ Anonima</span>
-                </label>
+          <div className={styles.attributionSectionCompact}>
+            <label className={styles.label} htmlFor="editAttributionSelect">
+              Attribuzione della Nota:
+            </label>
+            <select
+              id="editAttributionSelect"
+              className={styles.selectCompact}
+              value={editAttributionType}
+              onChange={(e) => setEditAttributionType(e.target.value)}
+            >
+              <option value="self">👤 A me stesso/a</option>
+              <option value="other">👥 Ad un'altra persona</option>
+              <option value="pseudonym">🎭 Ad uno pseudonimo</option>
+              <option value="eteronym">✍️ Ad un eteronimo</option>
+              <option value="anonymous">❓ Anonima</option>
+            </select>
+            {(editAttributionType === "other" ||
+              editAttributionType === "pseudonym" ||
+              editAttributionType === "eteronym") && (
+              <div className={styles.attributionNameFieldCompact}>
+                <input
+                  type="text"
+                  value={editAttributionName}
+                  onChange={(e) => setEditAttributionName(e.target.value)}
+                  placeholder={
+                    editAttributionType === "other"
+                      ? "Nome della persona"
+                      : editAttributionType === "pseudonym"
+                      ? "Nome dello pseudonimo"
+                      : "Nome dell'eteronimo"
+                  }
+                  className={styles.inputCompact}
+                />
               </div>
-
-              {(editAttributionType === "other" ||
-                editAttributionType === "pseudonym" ||
-                editAttributionType === "eteronym") && (
-                <div className={styles.attributionNameField}>
-                  <input
-                    type="text"
-                    value={editAttributionName}
-                    onChange={(e) => setEditAttributionName(e.target.value)}
-                    placeholder={
-                      editAttributionType === "other"
-                        ? "Nome della persona"
-                        : editAttributionType === "pseudonym"
-                        ? "Nome dello pseudonimo"
-                        : "Nome dell'eteronimo"
-                    }
-                    className={styles.input}
-                  />
+            )}
+            {(editAttributionType === "pseudonym" ||
+              editAttributionType === "eteronym") &&
+              editAttributionName && (
+                <div className={styles.revealOptionCompact}>
+                  <label className={styles.checkboxLabelCompact}>
+                    <input
+                      type="checkbox"
+                      checked={editRevealPseudonym}
+                      onChange={(e) => setEditRevealPseudonym(e.target.checked)}
+                      className={styles.checkboxInputCompact}
+                    />
+                    <span>
+                      🔍 Rivelare che "{editAttributionName}" è un{" "}
+                      {editAttributionType === "pseudonym"
+                        ? "pseudonimo"
+                        : "eteronimo"}
+                    </span>
+                  </label>
                 </div>
               )}
-
-              {(editAttributionType === "pseudonym" ||
-                editAttributionType === "eteronym") &&
-                editAttributionName && (
-                  <div className={styles.revealOption}>
-                    <label className={styles.checkboxLabel}>
-                      <input
-                        type="checkbox"
-                        checked={editRevealPseudonym}
-                        onChange={(e) =>
-                          setEditRevealPseudonym(e.target.checked)
-                        }
-                        className={styles.checkboxInput}
-                      />
-                      <span>
-                        🔍 Rivelare che "{editAttributionName}" è un{" "}
-                        {editAttributionType === "pseudonym"
-                          ? "pseudonimo"
-                          : "eteronimo"}
-                      </span>
-                    </label>
-                  </div>
-                )}
-            </div>
           </div>
 
           {/* Privacy editing section - only for personal notes */}
           {note.type === "personal" && (
-            <div className={styles.privacySection}>
-              <h3 className={styles.sectionTitle}>Privacy della Nota</h3>
-              <div className={styles.privacyOptions}>
-                <label className={styles.radioLabel}>
-                  <input
-                    type="radio"
-                    name="privacy"
-                    value="public"
-                    checked={!editIsPrivate}
-                    onChange={() => setEditIsPrivate(false)}
-                    className={styles.radioInput}
-                  />
-                  <span>🌍 Pubblica - Visibile a tutti gli utenti</span>
-                </label>
-                <label className={styles.radioLabel}>
-                  <input
-                    type="radio"
-                    name="privacy"
-                    value="private"
-                    checked={editIsPrivate}
-                    onChange={() => setEditIsPrivate(true)}
-                    className={styles.radioInput}
-                  />
-                  <span>🔒 Privata - Visibile solo a te</span>
-                </label>
-              </div>
+            <div className={styles.privacySectionCompact}>
+              <label className={styles.label} htmlFor="editPrivacySelect">
+                Privacy della Nota:
+              </label>
+              <select
+                id="editPrivacySelect"
+                className={styles.selectCompact}
+                value={editIsPrivate ? "private" : "public"}
+                onChange={(e) => setEditIsPrivate(e.target.value === "private")}
+              >
+                <option value="public">
+                  🌍 Pubblica - Visibile a tutti gli utenti
+                </option>
+                <option value="private">🔒 Privata - Visibile solo a te</option>
+              </select>
             </div>
           )}
         </div>
