@@ -15,6 +15,7 @@ import { AuthContext } from "../App";
 import {
   enrichNoteWithUserData,
   formatUserDisplayName,
+  createRealTimeNotesEnrichment,
 } from "../utils/userUtils";
 import styles from "./Communities.module.css";
 
@@ -37,6 +38,8 @@ export default function Communities() {
   const [newCommunityDescription, setNewCommunityDescription] = useState("");
   const [newCommunityVisibility, setNewCommunityVisibility] =
     useState("public");
+  const [communitiesEnrichmentCleanup, setCommunitiesEnrichmentCleanup] =
+    useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -194,29 +197,46 @@ export default function Communities() {
           ...doc.data(),
         }));
 
-        // Enrich communities with creator display data
-        const enrichedCommunities = await Promise.all(
-          rawCommunities.map(async (community) => {
-            try {
-              const enrichedCommunity = await enrichNoteWithUserData(
-                community,
-                "creatorId"
-              );
-              return {
-                ...enrichedCommunity,
-                creatorDisplayName: formatUserDisplayName(enrichedCommunity),
-              };
-            } catch (err) {
-              console.error("Error enriching community creator data:", err);
-              return {
+        // Clean up previous enrichment if it exists
+        if (communitiesEnrichmentCleanup) {
+          communitiesEnrichmentCleanup();
+        }
+
+        // Set up real-time enrichment for communities (treating them like notes with creatorId)
+        const enrichmentSystem = createRealTimeNotesEnrichment(
+          rawCommunities,
+          null, // no community context for communities themselves
+          "creatorId",
+          (updatedCommunities) => {
+            // This callback is called whenever user data changes
+            const communitiesWithDisplayNames = updatedCommunities.map(
+              (community) => ({
                 ...community,
-                creatorDisplayName: "Creatore Sconosciuto",
-              };
-            }
+                creatorDisplayName:
+                  community.authorDisplayName ||
+                  community.authorEmail?.split("@")[0] ||
+                  "Creatore Sconosciuto",
+              })
+            );
+
+            allCommunities = communitiesWithDisplayNames;
+            updateCommunityStats();
+          }
+        );
+
+        // Set initial enriched communities
+        const initialEnrichedCommunities = enrichmentSystem.enrichedNotes.map(
+          (community) => ({
+            ...community,
+            creatorDisplayName:
+              community.authorDisplayName ||
+              community.authorEmail?.split("@")[0] ||
+              "Creatore Sconosciuto",
           })
         );
 
-        allCommunities = enrichedCommunities;
+        allCommunities = initialEnrichedCommunities;
+        setCommunitiesEnrichmentCleanup(() => enrichmentSystem.cleanup);
         updateCommunityStats();
       },
       (err) => {
@@ -269,6 +289,10 @@ export default function Communities() {
       unsubscribeCommunities();
       unsubscribeNotes();
       unsubscribeComments();
+      // Clean up communities enrichment listeners
+      if (communitiesEnrichmentCleanup) {
+        communitiesEnrichmentCleanup();
+      }
     };
   }, [user]);
 

@@ -22,7 +22,10 @@ import {
   arrayUnion,
   arrayRemove,
 } from "firebase/firestore";
-import { enrichNotesWithUserData } from "../utils/userUtils";
+import {
+  enrichNotesWithUserData,
+  createRealTimeNotesEnrichment,
+} from "../utils/userUtils";
 import NewNoteForm from "../components/NewNoteForm";
 import NoteCard from "../components/NoteCard";
 import { useCommentCounts } from "../hooks/useCommentCounts";
@@ -38,6 +41,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [addingNote, setAddingNote] = useState(false);
   const [filterType, setFilterType] = useState("all"); // "all", "my", "shared", "personal"
+  const [notesEnrichmentCleanup, setNotesEnrichmentCleanup] = useState(null);
   const availableReactions = ["👍", "❤️", "😂", "😮", "😢", "😠"];
 
   // Get comment counts for all notes
@@ -129,19 +133,13 @@ export default function Home() {
       sharedNotesQuery,
       async (sharedSnapshot) => {
         try {
-          const notes = await Promise.all(
+          const rawNotes = await Promise.all(
             sharedSnapshot.docs.map(async (docSnap) => {
               const noteData = {
                 id: docSnap.id,
                 ...docSnap.data(),
                 type: "shared",
               };
-
-              // Enrich with user display data
-              const enrichedNote = await enrichNotesWithUserData(
-                [noteData],
-                "authorId"
-              );
 
               // Also fetch community name and visibility
               let communityName = "Comunità Sconosciuta";
@@ -157,28 +155,56 @@ export default function Home() {
                     communityVisibility = communityData.visibility || "public";
                   }
                 } catch (err) {
-                  console.log("Could not fetch community name:", err);
+                  console.log("Could not fetch community data:", err);
                 }
               }
 
               return {
-                ...enrichedNote[0],
+                ...noteData,
                 communityName,
                 communityVisibility,
               };
             })
           );
 
-          // Filter notes based on user authentication and community visibility
-          let filteredNotes = notes;
-          if (!user) {
-            // For unauthenticated users, only show notes from public communities
-            filteredNotes = notes.filter((note) => {
-              return note.communityVisibility === "public";
-            });
+          // Clean up previous enrichment if it exists
+          if (notesEnrichmentCleanup) {
+            notesEnrichmentCleanup();
           }
 
-          setSharedNotes(filteredNotes);
+          // Set up real-time enrichment for shared notes
+          const enrichmentSystem = createRealTimeNotesEnrichment(
+            rawNotes,
+            null, // no specific community context for home page
+            "authorId",
+            (updatedNotes) => {
+              // This callback is called whenever user data changes
+              // Apply filtering based on user authentication and community visibility
+              let filteredNotes = updatedNotes;
+              if (!user) {
+                // For unauthenticated users, only show notes from public communities
+                filteredNotes = updatedNotes.filter((note) => {
+                  return note.communityVisibility === "public";
+                });
+              }
+              setSharedNotes(filteredNotes);
+            }
+          );
+
+          // Apply initial filtering and set notes
+          let initialFilteredNotes = enrichmentSystem.enrichedNotes;
+          if (!user) {
+            // For unauthenticated users, only show notes from public communities
+            initialFilteredNotes = enrichmentSystem.enrichedNotes.filter(
+              (note) => {
+                return note.communityVisibility === "public";
+              }
+            );
+          }
+          setSharedNotes(initialFilteredNotes);
+
+          // Store cleanup function
+          setNotesEnrichmentCleanup(() => enrichmentSystem.cleanup);
         } catch (err) {
           console.error("Error processing shared notes:", err);
           setError("Errore nel caricamento delle note condivise.");
@@ -191,8 +217,12 @@ export default function Home() {
     );
 
     return () => {
-      unsubPersonalNotes();
+      if (unsubPersonalNotes) unsubPersonalNotes();
       unsubSharedNotes();
+      // Clean up enrichment listeners
+      if (notesEnrichmentCleanup) {
+        notesEnrichmentCleanup();
+      }
     };
   }, [user]);
 

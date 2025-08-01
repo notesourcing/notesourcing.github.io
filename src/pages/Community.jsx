@@ -30,6 +30,7 @@ import {
   enrichNoteWithUserData,
   formatUserDisplayNameSimple,
   enrichNotesWithCommunityNames,
+  createRealTimeNotesEnrichment,
 } from "../utils/userUtils";
 import NewNoteForm from "../components/NewNoteForm";
 import NoteCard from "../components/NoteCard";
@@ -62,6 +63,7 @@ export default function Community() {
     totalReactions: 0,
     lastActivity: null,
   });
+  const [notesEnrichmentCleanup, setNotesEnrichmentCleanup] = useState(null);
   const availableReactions = ["👍", "❤️", "😂", "😮", "😢", "😠"];
 
   // Get comment counts for shared notes
@@ -85,6 +87,15 @@ export default function Community() {
         document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [showConfigDropdown]);
+
+  // Cleanup effect for component unmount
+  useEffect(() => {
+    return () => {
+      if (notesEnrichmentCleanup) {
+        notesEnrichmentCleanup();
+      }
+    };
+  }, [notesEnrichmentCleanup]);
 
   useEffect(() => {
     if (!id) return;
@@ -176,6 +187,12 @@ export default function Community() {
   useEffect(() => {
     if (!community) return;
 
+    // Clean up previous enrichment listeners
+    if (notesEnrichmentCleanup) {
+      notesEnrichmentCleanup();
+      setNotesEnrichmentCleanup(null);
+    }
+
     // Determine if user should see notes
     const canViewNotes = user
       ? isMember || community.visibility === "public" || !community.visibility // Authenticated users: members OR public communities
@@ -196,20 +213,27 @@ export default function Community() {
             ...doc.data(),
           }));
 
-          // First enrich notes with basic user display data
-          const enrichedNotes = await enrichNotesWithUserData(
+          // Clean up previous enrichment if it exists
+          if (notesEnrichmentCleanup) {
+            notesEnrichmentCleanup();
+          }
+
+          // Set up real-time enrichment for the new notes
+          const enrichmentSystem = createRealTimeNotesEnrichment(
             rawNotes,
-            "authorId"
+            id, // community ID for custom names
+            "authorId",
+            (updatedNotes) => {
+              // This callback is called whenever user data changes
+              setSharedNotes(updatedNotes);
+            }
           );
 
-          // Then enrich with community-specific custom display names
-          const communityEnrichedNotes = await enrichNotesWithCommunityNames(
-            enrichedNotes,
-            id,
-            "authorId"
-          );
+          // Set initial enriched notes
+          setSharedNotes(enrichmentSystem.enrichedNotes);
 
-          setSharedNotes(communityEnrichedNotes);
+          // Store cleanup function
+          setNotesEnrichmentCleanup(() => enrichmentSystem.cleanup);
         },
         (err) => {
           console.error("Error fetching shared notes:", err);
@@ -217,7 +241,13 @@ export default function Community() {
         }
       );
 
-      return () => unsubscribe();
+      return () => {
+        unsubscribe();
+        // Clean up enrichment listeners when component unmounts
+        if (notesEnrichmentCleanup) {
+          notesEnrichmentCleanup();
+        }
+      };
     } else {
       // Clear notes for private/hidden communities when access is not allowed
       setSharedNotes([]);
@@ -482,19 +512,7 @@ export default function Community() {
       setShowCustomNameForm(false);
       setShowConfigDropdown(false);
 
-      // Refresh the notes to show updated custom names
-      if (sharedNotes.length > 0) {
-        try {
-          const communityEnrichedNotes = await enrichNotesWithCommunityNames(
-            sharedNotes,
-            id,
-            "authorId"
-          );
-          setSharedNotes(communityEnrichedNotes);
-        } catch (err) {
-          console.log("Error refreshing notes with new custom name:", err);
-        }
-      }
+      // The real-time enrichment system will automatically update notes when user data changes
     } catch (err) {
       console.error("Error saving custom name:", err);
       setError("Errore durante il salvataggio del nome personalizzato.");
