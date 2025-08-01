@@ -235,6 +235,57 @@
   flex-direction: column;
 }
 
+.fieldDisplay {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+}
+
+.fieldDisplay:hover {
+  background: #f1f3f4;
+  border-color: #007bff;
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.08);
+}
+
+.fieldDisplay:last-child {
+  margin-bottom: 0;
+}
+
+.fieldHeader {
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.fieldLabel {
+  font-weight: 700;
+  color: #495057;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0;
+}
+
+.fieldContent {
+  line-height: 1.6;
+}
+
+.fieldText {
+  color: #333;
+  font-size: 1rem;
+  margin: 0;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  white-space: pre-wrap;
+  min-height: auto;
+}
+
 .label {
   margin-bottom: 0.5rem;
   font-weight: bold;
@@ -379,6 +430,50 @@
   cursor: pointer;
   font-size: 0.9rem;
   color: #856404;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .container {
+    margin: 1rem;
+    padding: 1rem;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .fieldDisplay {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .fieldLabel {
+    font-size: 1rem;
+  }
+
+  .fieldText {
+    font-size: 0.95rem;
+  }
+
+  .fieldCard {
+    padding: 0.75rem;
+  }
+
+  .fieldContent {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .buttonContainer {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .button {
+    width: 100%;
+    padding: 0.75rem;
+  }
 }
 
 .checkboxInput {

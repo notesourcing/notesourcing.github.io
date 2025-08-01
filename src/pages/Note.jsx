@@ -602,9 +602,13 @@ export default function Note() {
           )}
 
           {note.fields?.map((field, index) => (
-            <div key={index} className={styles.field}>
-              <strong className={styles.label}>{field.name}:</strong>
-              <p className={styles.textarea}>{field.value}</p>
+            <div key={index} className={styles.fieldDisplay}>
+              <div className={styles.fieldHeader}>
+                <strong className={styles.fieldLabel}>{field.name}</strong>
+              </div>
+              <div className={styles.fieldContent}>
+                <p className={styles.fieldText}>{field.value}</p>
+              </div>
             </div>
           ))}
         </div>

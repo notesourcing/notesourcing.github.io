@@ -124,14 +124,25 @@ export default function NoteCard({
         <div className={styles.noteContent}>
           {note.fields && note.fields.length > 0 ? (
             note.fields.map((field, index) => (
-              <div key={index} className={styles.field}>
-                <strong className={styles.fieldName}>{field.name}:</strong>
-                <span className={styles.fieldValue}>{field.value}</span>
+              <div key={index} className={styles.fieldCard}>
+                <div className={styles.fieldHeader}>
+                  <strong className={styles.fieldName}>{field.name}</strong>
+                </div>
+                <div className={styles.fieldValueContainer}>
+                  <span className={styles.fieldValue}>{field.value}</span>
+                </div>
               </div>
             ))
           ) : (
-            <div className={styles.noteText}>
-              {note.text || "Nota senza contenuto"}
+            <div className={styles.fieldCard}>
+              <div className={styles.fieldHeader}>
+                <strong className={styles.fieldName}>Contenuto</strong>
+              </div>
+              <div className={styles.fieldValueContainer}>
+                <span className={styles.fieldValue}>
+                  {note.text || "Nota senza contenuto"}
+                </span>
+              </div>
             </div>
           )}
         </div>
