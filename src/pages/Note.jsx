@@ -17,7 +17,7 @@ export default function Note() {
   const { id: sequentialId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useContext(AuthContext);
+  const { user, userDisplayName } = useContext(AuthContext);
   const [note, setNote] = useState(null);
   const [noteId, setNoteId] = useState(null); // Firebase document ID
   const [loading, setLoading] = useState(true);
@@ -286,6 +286,33 @@ export default function Note() {
 
     switch (type) {
       case "self":
+        // For self attribution, use current user's display names if this is the user's own note
+        if (note.type === "personal" && note.uid === user?.uid) {
+          // Priority: 1. Community custom name, 2. Profile display name, 3. Email username
+          if (note.communityId && note.communityDisplayName) {
+            return note.communityDisplayName;
+          }
+          if (userDisplayName) {
+            return userDisplayName;
+          }
+          if (user?.email) {
+            return user.email.split("@")[0];
+          }
+        }
+        // For shared notes, check if current user is the author
+        if (note.type === "shared" && note.authorId === user?.uid) {
+          // Priority: 1. Community custom name, 2. Profile display name, 3. Email username
+          if (note.communityId && note.communityDisplayName) {
+            return note.communityDisplayName;
+          }
+          if (userDisplayName) {
+            return userDisplayName;
+          }
+          if (user?.email) {
+            return user.email.split("@")[0];
+          }
+        }
+        // Otherwise fall back to note data
         return (
           note.authorEmail?.split("@")[0] || note.uid || "Utente sconosciuto"
         );

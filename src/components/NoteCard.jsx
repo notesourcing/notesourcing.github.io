@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useContext } from "react";
 import { Link } from "react-router-dom";
+import { AuthContext } from "../App";
 import { formatUserDisplayName } from "../utils/userUtils";
 import styles from "./NoteCard.module.css";
 
@@ -15,6 +16,7 @@ export default function NoteCard({
   showDeleteButton = true,
   commentCount = 0,
 }) {
+  const { userDisplayName } = useContext(AuthContext);
   const canDelete = () => {
     if (isSuperAdmin) return true;
     if (note.type === "personal" && note.uid === user?.uid) return true;
@@ -44,6 +46,33 @@ export default function NoteCard({
 
     switch (type) {
       case "self":
+        // For self attribution, use current user's display names if this is the user's own note
+        if (note.type === "personal" && note.uid === user?.uid) {
+          // Priority: 1. Community custom name, 2. Profile display name, 3. Email username
+          if (note.communityId && note.communityDisplayName) {
+            return note.communityDisplayName;
+          }
+          if (userDisplayName) {
+            return userDisplayName;
+          }
+          if (user?.email) {
+            return user.email.split("@")[0];
+          }
+        }
+        // For shared notes, check if current user is the author
+        if (note.type === "shared" && note.authorId === user?.uid) {
+          // Priority: 1. Community custom name, 2. Profile display name, 3. Email username
+          if (note.communityId && note.communityDisplayName) {
+            return note.communityDisplayName;
+          }
+          if (userDisplayName) {
+            return userDisplayName;
+          }
+          if (user?.email) {
+            return user.email.split("@")[0];
+          }
+        }
+        // Otherwise use enriched data
         return note.communityDisplayName || formatUserDisplayName(note);
       case "other":
         return name || "Persona sconosciuta";

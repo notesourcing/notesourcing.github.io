@@ -16,7 +16,7 @@ import { AuthContext } from "../App";
 import styles from "./Comments.module.css";
 
 export default function Comments({ noteId, noteType }) {
-  const { user } = useContext(AuthContext);
+  const { user, userDisplayName } = useContext(AuthContext);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [replyingTo, setReplyingTo] = useState(null);
@@ -157,9 +157,25 @@ export default function Comments({ noteId, noteType }) {
     });
   };
 
-  const formatUserName = (email) => {
-    if (!email) return "Utente Sconosciuto";
-    return email.split("@")[0];
+  const formatUserName = (comment) => {
+    // If this is the current user's comment, use their display names
+    if (comment.authorId === user?.uid) {
+      // Priority: 1. Community custom name (if we had community context), 2. Profile display name, 3. Email username
+      if (userDisplayName) {
+        return userDisplayName;
+      }
+      if (user?.email) {
+        return user.email.split("@")[0];
+      }
+    }
+
+    // For other users' comments, use their email username
+    // Note: In the future, this could be enhanced to fetch other users' display names
+    if (comment.authorEmail) {
+      return comment.authorEmail.split("@")[0];
+    }
+
+    return "Utente Sconosciuto";
   };
 
   // Organize comments into a threaded structure
@@ -210,7 +226,7 @@ export default function Comments({ noteId, noteType }) {
       >
         <div className={styles.commentHeader}>
           <span className={styles.commentAuthor}>
-            👤 {formatUserName(comment.authorEmail)}
+            👤 {formatUserName(comment)}
           </span>
           <span className={styles.commentDate}>
             📅 {formatDate(comment.created)}
