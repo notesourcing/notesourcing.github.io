@@ -94,6 +94,12 @@
   align-items: start;
 }
 
+/* Specific styles for field content in display mode (not editing) */
+.fieldDisplay .fieldContent {
+  display: block;
+  line-height: 1.6;
+}
+
 .fieldNameSection,
 .fieldValueSection {
   display: flex;
@@ -268,10 +274,6 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   margin: 0;
-}
-
-.fieldContent {
-  line-height: 1.6;
 }
 
 .fieldText {
@@ -460,7 +462,7 @@
     padding: 0.75rem;
   }
 
-  .fieldContent {
+  .fieldCard .fieldContent {
     grid-template-columns: 1fr;
     gap: 0.75rem;
   }
