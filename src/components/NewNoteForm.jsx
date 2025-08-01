@@ -24,12 +24,20 @@ export default function NewNoteForm({
   // Privacy field for personal notes
   const [isPrivate, setIsPrivate] = useState(false);
 
+  // Local validation error state
+  const [validationError, setValidationError] = useState("");
+
   // Attribution fields
   const [attributionType, setAttributionType] = useState("self"); // "self", "other", "pseudonym", "eteronym", "anonymous"
   const [attributionName, setAttributionName] = useState("");
   const [revealPseudonym, setRevealPseudonym] = useState(false); // For pseudonym/eteronym reveal option
 
   const handleFieldChange = (index, fieldName, value) => {
+    // Clear validation error when user starts typing
+    if (validationError) {
+      setValidationError("");
+    }
+
     const updatedFields = [...fields];
     updatedFields[index] = { ...updatedFields[index], [fieldName]: value };
     setFields(updatedFields);
@@ -46,7 +54,17 @@ export default function NewNoteForm({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (fields.every((f) => !f.value.trim())) return;
+
+    // Clear any previous validation errors
+    setValidationError("");
+
+    // Check if all fields are empty
+    if (fields.every((f) => !f.value.trim())) {
+      setValidationError(
+        "Non è possibile salvare una nota senza contenuto. Inserisci almeno un valore in uno dei campi."
+      );
+      return;
+    }
 
     // Prepare attribution data
     const attributionData = {
@@ -244,6 +262,7 @@ export default function NewNoteForm({
           </button>
         )}
       </div>
+      {validationError && <div className={styles.error}>{validationError}</div>}
       {error && <div className={styles.error}>{error}</div>}
     </form>
   );
