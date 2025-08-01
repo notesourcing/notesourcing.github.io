@@ -274,7 +274,8 @@ export default function Home() {
   const handleAddNote = async (
     fields,
     selectedCommunityId,
-    attributionData
+    attributionData,
+    isPrivate = false
   ) => {
     setError("");
     try {
@@ -298,6 +299,7 @@ export default function Home() {
         result = await createDocumentWithSequentialId("notes", {
           ...baseNoteData,
           uid: user.uid,
+          isPrivate: isPrivate, // Add privacy flag
         });
       }
 

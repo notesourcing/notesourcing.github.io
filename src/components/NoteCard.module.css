@@ -102,6 +102,21 @@
   font-weight: 500;
 }
 
+.noteTypes {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.privacyBadge {
+  font-size: 0.75rem;
+  color: #28a745;
+  background-color: rgba(40, 167, 69, 0.1);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
 .lastModified {
   font-style: italic;
   font-size: 0.8rem;

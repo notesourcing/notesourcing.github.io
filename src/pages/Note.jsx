@@ -30,6 +30,9 @@ export default function Note() {
   const [editAttributionName, setEditAttributionName] = useState("");
   const [editRevealPseudonym, setEditRevealPseudonym] = useState(false);
 
+  // Privacy state for editing personal notes
+  const [editIsPrivate, setEditIsPrivate] = useState(false);
+
   useEffect(() => {
     if (!user || !sequentialId) return;
 
@@ -172,6 +175,9 @@ export default function Note() {
           setEditAttributionType(attribution.type);
           setEditAttributionName(attribution.name || "");
           setEditRevealPseudonym(attribution.revealPseudonym || false);
+
+          // Initialize privacy editing state for personal notes
+          setEditIsPrivate(noteData.isPrivate || false);
         } else {
           setError("Nota non trovata.");
         }
@@ -204,16 +210,22 @@ export default function Note() {
         revealPseudonym: editRevealPseudonym,
       };
 
-      await updateDoc(doc(db, collectionName, noteId), {
+      const updateData = {
         fields: editFields,
         attribution: attributionData,
         lastModified: Timestamp.now(),
-      });
+      };
+
+      // Add privacy field for personal notes
+      if (note.type === "personal") {
+        updateData.isPrivate = editIsPrivate;
+      }
+
+      await updateDoc(doc(db, collectionName, noteId), updateData);
+
       setNote((prev) => ({
         ...prev,
-        fields: editFields,
-        attribution: attributionData,
-        lastModified: Timestamp.now(),
+        ...updateData,
       }));
       setEditing(false);
     } catch (err) {
@@ -477,6 +489,37 @@ export default function Note() {
                 )}
             </div>
           </div>
+
+          {/* Privacy editing section - only for personal notes */}
+          {note.type === "personal" && (
+            <div className={styles.privacySection}>
+              <h3 className={styles.sectionTitle}>Privacy della Nota</h3>
+              <div className={styles.privacyOptions}>
+                <label className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    name="privacy"
+                    value="public"
+                    checked={!editIsPrivate}
+                    onChange={() => setEditIsPrivate(false)}
+                    className={styles.radioInput}
+                  />
+                  <span>🌍 Pubblica - Visibile a tutti gli utenti</span>
+                </label>
+                <label className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    name="privacy"
+                    value="private"
+                    checked={editIsPrivate}
+                    onChange={() => setEditIsPrivate(true)}
+                    className={styles.radioInput}
+                  />
+                  <span>🔒 Privata - Visibile solo a te</span>
+                </label>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div>
@@ -487,6 +530,16 @@ export default function Note() {
               👤 {formatAttribution(note)}
             </p>
           </div>
+
+          {/* Privacy display - only for personal notes */}
+          {note.type === "personal" && (
+            <div className={styles.privacyDisplay}>
+              <h3 className={styles.sectionTitle}>Privacy:</h3>
+              <p className={styles.privacyText}>
+                {note.isPrivate ? "🔒 Nota Privata" : "🌍 Nota Pubblica"}
+              </p>
+            </div>
+          )}
 
           {note.fields?.map((field, index) => (
             <div key={index} className={styles.field}>

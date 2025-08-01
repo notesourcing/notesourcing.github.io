@@ -217,3 +217,34 @@
   color: #333;
   font-weight: 500;
 }
+
+/* Privacy section styles */
+.privacySection {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #28a745;
+}
+
+.privacyOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.privacyDisplay {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #28a745;
+}
+
+.privacyText {
+  margin: 0;
+  font-size: 1rem;
+  color: #333;
+  font-weight: 500;
+}

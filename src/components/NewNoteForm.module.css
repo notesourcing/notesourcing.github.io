@@ -187,3 +187,30 @@
   margin: 0;
   cursor: pointer;
 }
+
+/* Privacy section styles */
+.privacySelector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+}
+
+.privacyOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.privacyInfo {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background-color: #d1ecf1;
+  border-radius: 4px;
+  border-left: 3px solid #17a2b8;
+  font-size: 0.9rem;
+  color: #0c5460;
+}

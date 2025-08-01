@@ -21,6 +21,9 @@ export default function NewNoteForm({
 
   const [selectedCommunityId, setSelectedCommunityId] = useState("");
 
+  // Privacy field for personal notes
+  const [isPrivate, setIsPrivate] = useState(false);
+
   // Attribution fields
   const [attributionType, setAttributionType] = useState("self"); // "self", "other", "pseudonym", "eteronym", "anonymous"
   const [attributionName, setAttributionName] = useState("");
@@ -52,7 +55,7 @@ export default function NewNoteForm({
       revealPseudonym: revealPseudonym,
     };
 
-    onSubmit(fields, selectedCommunityId, attributionData);
+    onSubmit(fields, selectedCommunityId, attributionData, isPrivate);
   };
 
   return (
@@ -90,6 +93,43 @@ export default function NewNoteForm({
                 Esplora le community
               </a>
               o creane una nuova!
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Privacy Selector - only show for personal notes */}
+      {!selectedCommunityId && (
+        <div className={styles.privacySelector}>
+          <label className={styles.label}>Privacy della nota:</label>
+          <div className={styles.privacyOptions}>
+            <label className={styles.radioLabel}>
+              <input
+                type="radio"
+                name="privacy"
+                value="public"
+                checked={!isPrivate}
+                onChange={() => setIsPrivate(false)}
+                className={styles.radioInput}
+              />
+              <span>🌍 Pubblica - Visibile a tutti gli utenti</span>
+            </label>
+            <label className={styles.radioLabel}>
+              <input
+                type="radio"
+                name="privacy"
+                value="private"
+                checked={isPrivate}
+                onChange={() => setIsPrivate(true)}
+                className={styles.radioInput}
+              />
+              <span>🔒 Privata - Visibile solo a te</span>
+            </label>
+          </div>
+          {isPrivate && (
+            <div className={styles.privacyInfo}>
+              ℹ️ Le note private sono visibili solo a te e non compaiono nelle
+              pagine pubbliche
             </div>
           )}
         </div>

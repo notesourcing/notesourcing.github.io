@@ -108,9 +108,14 @@ export default function NoteCard({
         <div className={styles.noteMetadata}>
           <div className={styles.metadataRow}>
             <span className={styles.author}>👤 {formatAttribution(note)}</span>
-            <span className={styles.noteType}>
-              {note.type === "personal" ? "📝 Personale" : "🌐 Condivisa"}
-            </span>
+            <div className={styles.noteTypes}>
+              <span className={styles.noteType}>
+                {note.type === "personal" ? "📝 Personale" : "🌐 Condivisa"}
+              </span>
+              {note.type === "personal" && note.isPrivate && (
+                <span className={styles.privacyBadge}>🔒 Privata</span>
+              )}
+            </div>
           </div>
 
           <div className={styles.metadataRow}>
