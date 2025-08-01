@@ -116,31 +116,53 @@ export default function NewNoteForm({
         </div>
       )}
 
-      {/* Privacy Selector - only show for personal notes */}
-      {!selectedCommunityId && (
-        <div className={styles.privacySelectorCompact}>
-          <label className={styles.label} htmlFor="privacySelect">
-            Privacy della nota:
-          </label>
-          <select
-            id="privacySelect"
-            className={styles.selectCompact}
-            value={isPrivate ? "private" : "public"}
-            onChange={(e) => setIsPrivate(e.target.value === "private")}
+      {/* Fields Section - moved to come first like in Note editing */}
+      {fields.map((field, index) => (
+        <div key={index} className={styles.fieldCard}>
+          <button
+            type="button"
+            onClick={() => removeField(index)}
+            className={styles.removeButtonX}
+            title="Rimuovi campo"
           >
-            <option value="public">
-              🌍 Pubblica - Visibile a tutti gli utenti
-            </option>
-            <option value="private">🔒 Privata - Visibile solo a te</option>
-          </select>
-          {isPrivate && (
-            <div className={styles.privacyInfo}>
-              ℹ️ Le note private sono visibili solo a te e non compaiono nelle
-              pagine pubbliche
+            ×
+          </button>
+          <div className={styles.fieldContent}>
+            <div className={styles.fieldNameSection}>
+              <label className={styles.fieldLabelCompact}>Nome del campo</label>
+              <input
+                type="text"
+                value={field.name}
+                onChange={(e) =>
+                  handleFieldChange(index, "name", e.target.value)
+                }
+                placeholder="es. Titolo"
+                className={styles.inputCompact}
+              />
             </div>
-          )}
+            <div className={styles.fieldValueSection}>
+              <label className={styles.fieldLabelCompact}>
+                Valore del campo
+              </label>
+              <textarea
+                value={field.value}
+                onChange={(e) =>
+                  handleFieldChange(index, "value", e.target.value)
+                }
+                placeholder="Valore campo"
+                className={styles.textareaResizable}
+              />
+            </div>
+          </div>
         </div>
-      )}
+      ))}
+      <button
+        type="button"
+        onClick={addField}
+        className={styles.addFieldButton}
+      >
+        Aggiungi Campo
+      </button>
 
       {/* Attribution Section */}
       <div className={styles.attributionSectionCompact}>
@@ -198,53 +220,33 @@ export default function NewNoteForm({
           )}
       </div>
 
-      {fields.map((field, index) => (
-        <div key={index} className={styles.fieldCard}>
-          <button
-            type="button"
-            onClick={() => removeField(index)}
-            className={styles.removeButtonX}
-            title="Rimuovi campo"
+      {/* Privacy Selector - only show for personal notes */}
+      {!selectedCommunityId && (
+        <div className={styles.privacySelectorCompact}>
+          <label className={styles.label} htmlFor="privacySelect">
+            Privacy della nota:
+          </label>
+          <select
+            id="privacySelect"
+            className={styles.selectCompact}
+            value={isPrivate ? "private" : "public"}
+            onChange={(e) => setIsPrivate(e.target.value === "private")}
           >
-            ×
-          </button>
-          <div className={styles.fieldContent}>
-            <div className={styles.fieldNameSection}>
-              <label className={styles.fieldLabelCompact}>Nome del campo</label>
-              <input
-                type="text"
-                value={field.name}
-                onChange={(e) =>
-                  handleFieldChange(index, "name", e.target.value)
-                }
-                placeholder="es. Titolo"
-                className={styles.inputCompact}
-              />
+            <option value="public">
+              🌍 Pubblica - Visibile a tutti gli utenti
+            </option>
+            <option value="private">🔒 Privata - Visibile solo a te</option>
+          </select>
+          {isPrivate && (
+            <div className={styles.privacyInfo}>
+              ℹ️ Le note private sono visibili solo a te e non compaiono nelle
+              pagine pubbliche
             </div>
-            <div className={styles.fieldValueSection}>
-              <label className={styles.fieldLabelCompact}>
-                Valore del campo
-              </label>
-              <textarea
-                value={field.value}
-                onChange={(e) =>
-                  handleFieldChange(index, "value", e.target.value)
-                }
-                placeholder="Valore campo"
-                className={styles.textareaResizable}
-              />
-            </div>
-          </div>
+          )}
         </div>
-      ))}
+      )}
+
       <div className={styles.buttonContainer}>
-        <button
-          type="button"
-          onClick={addField}
-          className={`${styles.button} ${styles.addFieldButton}`}
-        >
-          Aggiungi Campo
-        </button>
         <button
           type="submit"
           disabled={loading}
