@@ -4,7 +4,7 @@
  * Before modifying, run: npm run features
  */
 import React, { useContext, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../App";
 import { db } from "../firebase";
 import {
@@ -26,6 +26,11 @@ import {
   enrichNotesWithUserData,
   createRealTimeNotesEnrichment,
 } from "../utils/userUtils";
+import {
+  createDocumentWithSequentialId,
+  getSequentialIdFromFirebase,
+  addSequentialIdsToDocuments,
+} from "../utils/sequentialIds";
 import NewNoteForm from "../components/NewNoteForm";
 import NoteCard from "../components/NoteCard";
 import { useCommentCounts } from "../hooks/useCommentCounts";
@@ -33,6 +38,7 @@ import styles from "./Home.module.css";
 
 export default function Home() {
   const { user, isSuperAdmin } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [allNotes, setAllNotes] = useState([]);
   const [personalNotes, setPersonalNotes] = useState([]);
   const [sharedNotes, setSharedNotes] = useState([]);
@@ -102,9 +108,15 @@ export default function Home() {
               type: "personal",
             }));
 
+            // Add sequential IDs
+            const notesWithSeqIds = await addSequentialIdsToDocuments(
+              rawNotes,
+              "notes"
+            );
+
             // Enrich with user display data
             const enrichedNotes = await enrichNotesWithUserData(
-              rawNotes,
+              notesWithSeqIds,
               "uid"
             );
             setPersonalNotes(enrichedNotes);
@@ -167,6 +179,12 @@ export default function Home() {
             })
           );
 
+          // Add sequential IDs to notes
+          const notesWithSeqIds = await addSequentialIdsToDocuments(
+            rawNotes,
+            "sharedNotes"
+          );
+
           // Clean up previous enrichment if it exists
           if (notesEnrichmentCleanup) {
             notesEnrichmentCleanup();
@@ -174,7 +192,7 @@ export default function Home() {
 
           // Set up real-time enrichment for shared notes
           const enrichmentSystem = createRealTimeNotesEnrichment(
-            rawNotes,
+            notesWithSeqIds,
             null, // no specific community context for home page
             "authorId",
             (updatedNotes) => {
@@ -266,9 +284,10 @@ export default function Home() {
         attribution: attributionData || { type: "self" }, // Default to self attribution
       };
 
+      let result;
       if (selectedCommunityId) {
         // Create shared note in community
-        await addDoc(collection(db, "sharedNotes"), {
+        result = await createDocumentWithSequentialId("sharedNotes", {
           ...baseNoteData,
           communityId: selectedCommunityId,
           authorId: user.uid,
@@ -276,12 +295,30 @@ export default function Home() {
         });
       } else {
         // Create personal note
-        await addDoc(collection(db, "notes"), {
+        result = await createDocumentWithSequentialId("notes", {
           ...baseNoteData,
           uid: user.uid,
         });
       }
+
       setAddingNote(false);
+
+      // Navigate to the newly created note using sequential ID if available
+      if (selectedCommunityId) {
+        // Shared note - use shared-note URL pattern
+        if (result.sequentialId) {
+          navigate(`/shared-note/${result.sequentialId}`);
+        } else {
+          navigate(`/shared-note/${result.docId}`);
+        }
+      } else {
+        // Personal note - use note URL pattern
+        if (result.sequentialId) {
+          navigate(`/note/${result.sequentialId}`);
+        } else {
+          navigate(`/note/${result.docId}`);
+        }
+      }
     } catch (err) {
       console.error("Error handling notes:", err);
       setError("Errore durante la creazione della nota.");

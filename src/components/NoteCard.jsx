@@ -82,7 +82,14 @@ export default function NoteCard({
       )}
 
       {/* Clickable note content */}
-      <Link to={`/note/${note.id}`} className={styles.noteLink}>
+      <Link
+        to={
+          note.type === "shared"
+            ? `/shared-note/${note.sequentialId || note.id}`
+            : `/note/${note.sequentialId || note.id}`
+        }
+        className={styles.noteLink}
+      >
         <div className={styles.noteContent}>
           {note.fields && note.fields.length > 0 ? (
             note.fields.map((field, index) => (

@@ -132,6 +132,7 @@ function Layout() {
           {/* Redirect dashboard to home */}
           <Route path="/dashboard" element={<Navigate to="/" replace />} />
           <Route path="/note/:id" element={<Note />} />
+          <Route path="/shared-note/:id" element={<Note />} />
           <Route path="/community/:id" element={<Community />} />
           <Route path="/communities" element={<Communities />} />
           <Route path="/user-roles" element={<UserRoles />} />

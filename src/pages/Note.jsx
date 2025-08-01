@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { AuthContext } from "../App";
 import { db } from "../firebase";
 import {
@@ -9,14 +9,17 @@ import {
   Timestamp,
   deleteDoc,
 } from "firebase/firestore";
+import { getFirebaseIdFromSequential } from "../utils/sequentialIds";
 import Comments from "../components/Comments";
 import styles from "./Note.module.css";
 
 export default function Note() {
-  const { id } = useParams();
+  const { id: sequentialId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useContext(AuthContext);
   const [note, setNote] = useState(null);
+  const [noteId, setNoteId] = useState(null); // Firebase document ID
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editFields, setEditFields] = useState([]);
@@ -28,23 +31,134 @@ export default function Note() {
   const [editRevealPseudonym, setEditRevealPseudonym] = useState(false);
 
   useEffect(() => {
-    if (!user || !id) return;
+    if (!user || !sequentialId) return;
 
     const fetchNote = async () => {
       setLoading(true);
       try {
-        // Try personal note first
-        let noteDoc = await getDoc(doc(db, "notes", id));
+        // Determine which collection to prioritize based on URL
+        const isSharedNoteRoute = location.pathname.startsWith("/shared-note");
         let noteData = null;
-        if (noteDoc.exists()) {
-          noteData = { id: noteDoc.id, ...noteDoc.data(), type: "personal" };
+        let firebaseId = null;
+        let noteDoc = null;
+
+        if (isSharedNoteRoute) {
+          // For /shared-note/* routes, try shared notes first
+          firebaseId = await getFirebaseIdFromSequential(
+            "sharedNotes",
+            parseInt(sequentialId)
+          );
+          if (firebaseId) {
+            noteDoc = await getDoc(doc(db, "sharedNotes", firebaseId));
+            if (noteDoc.exists()) {
+              noteData = { id: noteDoc.id, ...noteDoc.data(), type: "shared" };
+              setNoteId(firebaseId);
+            }
+          }
+
+          // If not found, try personal notes as fallback
+          if (!noteData) {
+            firebaseId = await getFirebaseIdFromSequential(
+              "notes",
+              parseInt(sequentialId)
+            );
+            if (firebaseId) {
+              noteDoc = await getDoc(doc(db, "notes", firebaseId));
+              if (noteDoc.exists()) {
+                noteData = {
+                  id: noteDoc.id,
+                  ...noteDoc.data(),
+                  type: "personal",
+                };
+                setNoteId(firebaseId);
+              }
+            }
+          }
         } else {
-          // Try shared note
-          noteDoc = await getDoc(doc(db, "sharedNotes", id));
-          if (noteDoc.exists()) {
-            noteData = { id: noteDoc.id, ...noteDoc.data(), type: "shared" };
+          // For /note/* routes, try personal notes first
+          firebaseId = await getFirebaseIdFromSequential(
+            "notes",
+            parseInt(sequentialId)
+          );
+          if (firebaseId) {
+            noteDoc = await getDoc(doc(db, "notes", firebaseId));
+            if (noteDoc.exists()) {
+              noteData = {
+                id: noteDoc.id,
+                ...noteDoc.data(),
+                type: "personal",
+              };
+              setNoteId(firebaseId);
+            }
+          }
+
+          // If not found, try shared notes as fallback
+          if (!noteData) {
+            firebaseId = await getFirebaseIdFromSequential(
+              "sharedNotes",
+              parseInt(sequentialId)
+            );
+            if (firebaseId) {
+              noteDoc = await getDoc(doc(db, "sharedNotes", firebaseId));
+              if (noteDoc.exists()) {
+                noteData = {
+                  id: noteDoc.id,
+                  ...noteDoc.data(),
+                  type: "shared",
+                };
+                setNoteId(firebaseId);
+              }
+            }
           }
         }
+
+        // If still no note found, try treating sequentialId as Firebase ID (backward compatibility)
+        if (!noteData) {
+          console.log("No sequential mapping found, trying as Firebase ID");
+
+          if (isSharedNoteRoute) {
+            // Try shared notes first for shared-note routes
+            noteDoc = await getDoc(doc(db, "sharedNotes", sequentialId));
+            if (noteDoc.exists()) {
+              noteData = { id: noteDoc.id, ...noteDoc.data(), type: "shared" };
+              setNoteId(sequentialId);
+            } else {
+              // Try personal notes as fallback
+              noteDoc = await getDoc(doc(db, "notes", sequentialId));
+              if (noteDoc.exists()) {
+                noteData = {
+                  id: noteDoc.id,
+                  ...noteDoc.data(),
+                  type: "personal",
+                };
+                setNoteId(sequentialId);
+              }
+            }
+          } else {
+            // Try personal notes first for note routes
+            noteDoc = await getDoc(doc(db, "notes", sequentialId));
+            if (noteDoc.exists()) {
+              noteData = {
+                id: noteDoc.id,
+                ...noteDoc.data(),
+                type: "personal",
+              };
+              setNoteId(sequentialId);
+            } else {
+              // Try shared notes as fallback
+              noteDoc = await getDoc(doc(db, "sharedNotes", sequentialId));
+              if (noteDoc.exists()) {
+                noteData = {
+                  id: noteDoc.id,
+                  ...noteDoc.data(),
+                  type: "shared",
+                };
+                setNoteId(sequentialId);
+              }
+            }
+          }
+        }
+
         if (noteData) {
           // Notes are publicly viewable (as seen in Home page)
           // Only editing should be restricted to authors
@@ -69,7 +183,7 @@ export default function Note() {
     };
 
     fetchNote();
-  }, [user, id]);
+  }, [user, sequentialId]);
 
   const handleSave = async () => {
     if (!canEditNote()) {
@@ -90,7 +204,7 @@ export default function Note() {
         revealPseudonym: editRevealPseudonym,
       };
 
-      await updateDoc(doc(db, collectionName, id), {
+      await updateDoc(doc(db, collectionName, noteId), {
         fields: editFields,
         attribution: attributionData,
         lastModified: Timestamp.now(),
@@ -116,7 +230,7 @@ export default function Note() {
     if (window.confirm("Sei sicuro di voler eliminare questa nota?")) {
       try {
         const collectionName = note.type === "shared" ? "sharedNotes" : "notes";
-        await deleteDoc(doc(db, collectionName, id));
+        await deleteDoc(doc(db, collectionName, noteId));
         navigate("/");
       } catch (err) {
         console.error("Error deleting note:", err);
@@ -421,8 +535,8 @@ export default function Note() {
       {error && <p className={styles.error}>{error}</p>}
 
       {/* Comments Section */}
-      {note && note.id && note.type && (
-        <Comments noteId={note.id} noteType={note.type} />
+      {note && noteId && note.type && (
+        <Comments noteId={noteId} noteType={note.type} />
       )}
     </div>
   );

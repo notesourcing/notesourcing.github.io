@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import {
   collection,
@@ -17,10 +17,15 @@ import {
   formatUserDisplayName,
   createRealTimeNotesEnrichment,
 } from "../utils/userUtils";
+import {
+  createDocumentWithSequentialId,
+  getSequentialIdFromFirebase,
+} from "../utils/sequentialIds";
 import styles from "./Communities.module.css";
 
 export default function Communities() {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [adminCommunities, setAdminCommunities] = useState([]);
   const [userCommunities, setUserCommunities] = useState([]);
   const [otherCommunities, setOtherCommunities] = useState([]);
@@ -50,9 +55,23 @@ export default function Communities() {
     let allNotes = [];
     let allComments = [];
 
-    const updateCommunityStats = () => {
+    const updateCommunityStats = async () => {
       try {
-        const communitiesData = allCommunities.map((community) => {
+        // Add sequential IDs to communities
+        const communitiesWithSeqIds = await Promise.all(
+          allCommunities.map(async (community) => {
+            const sequentialId = await getSequentialIdFromFirebase(
+              "communities",
+              community.id
+            );
+            return {
+              ...community,
+              sequentialId: sequentialId || community.id, // fallback to Firebase ID if no sequential ID
+            };
+          })
+        );
+
+        const communitiesData = communitiesWithSeqIds.map((community) => {
           // Get notes for this community
           const communityNotes = allNotes.filter(
             (note) => note.communityId === community.id
@@ -309,7 +328,7 @@ export default function Communities() {
 
     setError("");
     try {
-      await addDoc(collection(db, "communities"), {
+      const result = await createDocumentWithSequentialId("communities", {
         name: newCommunityName,
         description: newCommunityDescription,
         visibility: newCommunityVisibility,
@@ -319,11 +338,19 @@ export default function Communities() {
         created: Timestamp.now(),
       });
 
-      // No need to manually update state - the real-time listener will handle it
+      // Clear form
       setNewCommunityName("");
       setNewCommunityDescription("");
       setNewCommunityVisibility("public");
       setShowCreateForm(false);
+
+      // Navigate to the newly created community using sequential ID if available
+      if (result.sequentialId) {
+        navigate(`/community/${result.sequentialId}`);
+      } else {
+        // Fallback to Firebase ID if sequential ID is not available
+        navigate(`/community/${result.docId}`);
+      }
     } catch (err) {
       console.error("Error creating community:", err);
       setError("Errore nella creazione della community.");
@@ -362,7 +389,10 @@ export default function Communities() {
 
     return (
       <li key={community.id} className={styles.communityCard}>
-        <Link to={`/community/${community.id}`} className={styles.cardLink}>
+        <Link
+          to={`/community/${community.sequentialId}`}
+          className={styles.cardLink}
+        >
           <div className={styles.cardHeader}>
             <h3 className={styles.communityName}>{community.name}</h3>
             <div className={styles.badges}>

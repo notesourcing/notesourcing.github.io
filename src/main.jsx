@@ -6,6 +6,8 @@ import "./index.css";
 // Import feature monitor for development
 if (import.meta.env.DEV) {
   import("./utils/featureMonitor.js");
+  import("./utils/migration.js");
+  import("./utils/testUtils.js");
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(

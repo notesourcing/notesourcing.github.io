@@ -32,6 +32,10 @@ import {
   enrichNotesWithCommunityNames,
   createRealTimeNotesEnrichment,
 } from "../utils/userUtils";
+import {
+  getFirebaseIdFromSequential,
+  createDocumentWithSequentialId,
+} from "../utils/sequentialIds";
 import NewNoteForm from "../components/NewNoteForm";
 import NoteCard from "../components/NoteCard";
 import JoinRequestManager from "../components/JoinRequestManager";
@@ -39,10 +43,11 @@ import { useCommentCounts } from "../hooks/useCommentCounts";
 import styles from "./Community.module.css";
 
 export default function Community() {
-  const { id } = useParams();
+  const { id: sequentialId } = useParams();
   const navigate = useNavigate();
   const { user, isAdmin } = useContext(AuthContext);
   const [community, setCommunity] = useState(null);
+  const [communityId, setCommunityId] = useState(null); // Firebase document ID
   const [sharedNotes, setSharedNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addingNote, setAddingNote] = useState(false);
@@ -98,12 +103,26 @@ export default function Community() {
   }, [notesEnrichmentCleanup]);
 
   useEffect(() => {
-    if (!id) return;
+    if (!sequentialId) return;
 
     const fetchCommunityData = async () => {
       setLoading(true);
       try {
-        const communityDoc = await getDoc(doc(db, "communities", id));
+        // First, try to resolve sequential ID to Firebase document ID
+        let firebaseId = await getFirebaseIdFromSequential(
+          "communities",
+          parseInt(sequentialId)
+        );
+
+        // If no mapping found, try treating the sequentialId as a Firebase ID (backward compatibility)
+        if (!firebaseId) {
+          console.log("No sequential mapping found, trying as Firebase ID");
+          firebaseId = sequentialId;
+        }
+
+        setCommunityId(firebaseId);
+
+        const communityDoc = await getDoc(doc(db, "communities", firebaseId));
         if (!communityDoc.exists()) {
           setError("Community non trovata.");
           setLoading(false);
@@ -148,7 +167,7 @@ export default function Community() {
                 const userData = userDoc.data();
                 const communityCustomNames =
                   userData.communityCustomNames || {};
-                setCustomDisplayName(communityCustomNames[id] || "");
+                setCustomDisplayName(communityCustomNames[firebaseId] || "");
               }
             } catch (err) {
               console.log("No custom name found or error loading:", err);
@@ -160,7 +179,7 @@ export default function Community() {
             const joinRequestsQuery = query(
               collection(db, "joinRequests"),
               where("userId", "==", user.uid),
-              where("communityId", "==", id)
+              where("communityId", "==", firebaseId)
             );
             const joinRequestsSnapshot = await getDocs(joinRequestsQuery);
             setHasRequestedJoin(!joinRequestsSnapshot.empty);
@@ -181,11 +200,11 @@ export default function Community() {
     };
 
     fetchCommunityData();
-  }, [id, user]);
+  }, [sequentialId, user]);
 
   // Fetch notes based on community visibility and user authentication
   useEffect(() => {
-    if (!community) return;
+    if (!community || !communityId) return;
 
     // Clean up previous enrichment listeners
     if (notesEnrichmentCleanup) {
@@ -201,7 +220,7 @@ export default function Community() {
     if (canViewNotes) {
       const notesQuery = query(
         collection(db, "sharedNotes"),
-        where("communityId", "==", id),
+        where("communityId", "==", communityId),
         orderBy("created", "desc")
       );
 
@@ -221,7 +240,7 @@ export default function Community() {
           // Set up real-time enrichment for the new notes
           const enrichmentSystem = createRealTimeNotesEnrichment(
             rawNotes,
-            id, // community ID for custom names
+            communityId, // community ID for custom names
             "authorId",
             (updatedNotes) => {
               // This callback is called whenever user data changes
@@ -252,18 +271,18 @@ export default function Community() {
       // Clear notes for private/hidden communities when access is not allowed
       setSharedNotes([]);
     }
-  }, [community, isMember, user, id]);
+  }, [community, isMember, user, communityId]);
 
   // Calculate community statistics with real-time updates
   useEffect(() => {
-    if (!community) return;
+    if (!community || !communityId) return;
 
     let currentCommunity = community;
     let currentNotes = [];
     let currentCommentCount = 0;
 
     // Set up real-time listener for the community document (for member count updates)
-    const communityDocRef = doc(db, "communities", id);
+    const communityDocRef = doc(db, "communities", communityId);
     const unsubscribeCommunity = onSnapshot(
       communityDocRef,
       (docSnapshot) => {
@@ -280,7 +299,7 @@ export default function Community() {
     // Set up real-time listener for ALL notes in the community
     const allNotesQuery = query(
       collection(db, "sharedNotes"),
-      where("communityId", "==", id)
+      where("communityId", "==", communityId)
     );
 
     const unsubscribeNotes = onSnapshot(
@@ -382,18 +401,18 @@ export default function Community() {
       unsubscribeNotes();
       unsubscribeComments();
     };
-  }, [community, id]);
+  }, [community, communityId]);
 
   const handleAddSharedNote = async (
     fields,
     selectedCommunityId,
     attributionData
   ) => {
-    if (!user) return;
+    if (!user || !communityId) return;
     setError("");
     try {
-      await addDoc(collection(db, "sharedNotes"), {
-        communityId: id,
+      await createDocumentWithSequentialId("sharedNotes", {
+        communityId: communityId,
         authorId: user.uid,
         authorEmail: user.email,
         fields,
@@ -417,14 +436,14 @@ export default function Community() {
   };
 
   const handleJoinRequest = async () => {
-    if (!user || hasRequestedJoin || requestingJoin) return;
+    if (!user || hasRequestedJoin || requestingJoin || !communityId) return;
 
     setRequestingJoin(true);
     setError("");
 
     try {
       await addDoc(collection(db, "joinRequests"), {
-        communityId: id,
+        communityId: communityId,
         userId: user.uid,
         userEmail: user.email,
         status: "pending",
@@ -441,7 +460,8 @@ export default function Community() {
   };
 
   const handleLeaveCommunity = async () => {
-    if (!user || !isMember || leavingCommunity || isCreator) return;
+    if (!user || !isMember || leavingCommunity || isCreator || !communityId)
+      return;
 
     // Confirm with user
     if (!window.confirm("Sei sicuro di voler lasciare questa community?")) {
@@ -452,7 +472,7 @@ export default function Community() {
     setError("");
 
     try {
-      const communityRef = doc(db, "communities", id);
+      const communityRef = doc(db, "communities", communityId);
       await updateDoc(communityRef, {
         members: arrayRemove(user.uid),
       });
@@ -475,7 +495,8 @@ export default function Community() {
   };
 
   const handleSaveCustomName = async () => {
-    if (!user || !customDisplayName.trim() || savingCustomName) return;
+    if (!user || !customDisplayName.trim() || savingCustomName || !communityId)
+      return;
 
     setSavingCustomName(true);
     setError("");
@@ -492,7 +513,7 @@ export default function Community() {
       // Update with new custom name for this community
       const updatedCustomNames = {
         ...currentCustomNames,
-        [id]: customDisplayName.trim(),
+        [communityId]: customDisplayName.trim(),
       };
 
       await updateDoc(userRef, {
@@ -503,7 +524,7 @@ export default function Community() {
         await setDoc(userRef, {
           uid: user.uid,
           email: user.email,
-          communityCustomNames: { [id]: customDisplayName.trim() },
+          communityCustomNames: { [communityId]: customDisplayName.trim() },
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -822,7 +843,7 @@ export default function Community() {
 
           {isCreator && (
             <JoinRequestManager
-              communityId={id}
+              communityId={communityId}
               user={user}
               onRequestHandled={() => {
                 // Optionally refresh community data when a request is handled
