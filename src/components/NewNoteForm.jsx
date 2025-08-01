@@ -1,5 +1,43 @@
 import React, { useState } from "react";
-import styles from "./NewNoteForm.module.css";
+imimport { db, auth, getNextSequence } from "../firebase";
+import { collection, addDoc, serverTimestamp, doc, setDoc } from "firebase/firestore";
+
+// ... existing code ...
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!title.trim() || !description.trim()) {
+      alert("Please fill in all fields.");
+      return;
+    }
+    const user = auth.currentUser;
+    if (!user) {
+      alert("You must be logged in to create a note.");
+      return;
+    }
+
+    try {
+      const numericId = await getNextSequence('notes');
+      const noteId = numericId.toString();
+      await setDoc(doc(db, "notes", noteId), {
+        title,
+        description,
+        communityId,
+        createdAt: serverTimestamp(),
+        createdBy: user.uid,
+        numericId: numericId,
+      });
+      setTitle("");
+      setDescription("");
+      setCommunityId("");
+      if (onNoteCreated) {
+        onNoteCreated();
+      }
+    } catch (error) {
+      console.error("Error creating note: ", error);
+      alert("Failed to create note. Please try again.");
+    }
+  };rom "./NewNoteForm.module.css";
 
 export default function NewNoteForm({
   onSubmit,
