@@ -542,7 +542,6 @@ export default function Home() {
           </div>
         </div>
       )}
-
       {/* Stats - show different stats for unauthenticated users */}
       {allNotes.length > 0 && (
         <div className={styles.stats}>
